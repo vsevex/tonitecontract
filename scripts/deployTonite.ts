@@ -8,6 +8,4 @@ export async function run(provider: NetworkProvider) {
     await tonite.sendDeploy(provider.sender(), toNano('0.05'));
 
     await provider.waitForDeploy(tonite.address);
-
-    // run methods on `tonite`
 }
