@@ -1,0 +1,20 @@
+{-
+    Contract Name: Staking Pool Contract (Reward-Based)
+    Purpose: A staking pool smart contract that enables participants
+             to contribute a fixed stake and distributes rewards 
+             to selected winners upon pool closure.
+    Author: Vsevolod V. Melyukov
+    Created On: 01/01/2025
+    Version: 0.0.1
+-}
+
+;; OP codes
+const int OP_UNKNOWN = 0;
+const int OP_JOIN_POOL = 11;
+const int OP_CREATE_POOL = 31;
+const int OP_CANCEL_POOL = 32;
+const int OP_UPDATE_POOL = 41;
+
+;; TON constants
+const int milliton = 1000000;
+const int ton      = 1000000000;
