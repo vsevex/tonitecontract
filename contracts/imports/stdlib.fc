@@ -677,24 +677,24 @@ const int BASECHAIN = 0;
 (slice, ()) ~skip_maybe_ref(slice s) asm "SKIPOPTREF";
 
 (slice, int) ~load_bool(slice s) inline {
-    return s.load_int(1);
+  return s.load_int(1);
 }
 
 builder store_bool(builder b, int value) inline {
-    return b.store_int(value, 1);
+  return b.store_int(value, 1);
 }
 
 ;; ADDRESS NONE
 ;; addr_none$00 = MsgAddressExt; https://github.com/ton-blockchain/ton/blob/8a9ff339927b22b72819c5125428b70c406da631/crypto/block/block.tlb#L100
 
 builder store_address_none(builder b) inline {
-    return b.store_uint(0, 2);
+  return b.store_uint(0, 2);
 }
 
 slice address_none() asm "<b 0 2 u, b> <s PUSHSLICE";
 
 int is_address_none(slice s) inline {
-    return s.preload_uint(2) == 0;
+  return s.preload_uint(2) == 0;
 }
 
 ;; MESSAGE
@@ -724,20 +724,20 @@ const int NON_BOUNCEABLE = 0x10; ;; 0b010000 tag - 0, ihr_disabled - 1, bounce -
 
 ;; store msg_flags and address none
 builder store_msg_flags_and_address_none(builder b, int msg_flags) inline {
-    return b.store_uint(msg_flags, 6);
+  return b.store_uint(msg_flags, 6);
 }
 
 ;; load msg_flags only
 (slice, int) ~load_msg_flags(slice s) inline {
-    return s.load_uint(4);
+  return s.load_uint(4);
 }
 ;;; @param `msg_flags` - 4-bit
 int is_bounced(int msg_flags) inline {
-    return msg_flags & 1 == 1;
+  return msg_flags & 1 == 1;
 }
 
 (slice, ()) ~skip_bounced_prefix(slice s) inline {
-    return (s.skip_bits(32), ()); ;; skip 0xFFFFFFFF prefix
+  return (s.skip_bits(32), ()); ;; skip 0xFFFFFFFF prefix
 }
 
 ;; after `grams:Grams` we have (1 + 4 + 4 + 64 + 32) zeroes - zeroed extracurrency, ihr_fee, fwd_fee, created_lt and created_at
@@ -770,31 +770,31 @@ const int MSG_BODY_IN_REF = 1;
 const int MSG_ONLY_BODY_SIZE = MSG_INFO_REST_BITS + 1 + 1;
 
 builder store_statinit_ref_and_body_ref(builder b, cell state_init, cell body) inline {
-    return b
+  return b
     .store_uint(MSG_HAVE_STATE_INIT + MSG_STATE_INIT_IN_REF + MSG_BODY_IN_REF, MSG_WITH_STATE_INIT_AND_BODY_SIZE)
     .store_ref(state_init)
     .store_ref(body);
 }
 
 builder store_only_body_ref(builder b, cell body) inline {
-    return b
+  return b
     .store_uint(MSG_BODY_IN_REF, MSG_ONLY_BODY_SIZE)
     .store_ref(body);
 }
 
 builder store_prefix_only_body(builder b) inline {
-    return b
+  return b
     .store_uint(0, MSG_ONLY_BODY_SIZE);
 }
 
 ;; parse after sender_address
 (slice, int) ~retrieve_fwd_fee(slice in_msg_full_slice) inline {
-    in_msg_full_slice~load_msg_addr(); ;; skip dst
-    in_msg_full_slice~load_coins(); ;; skip value
-    in_msg_full_slice~skip_dict(); ;; skip extracurrency collection
-    in_msg_full_slice~load_coins(); ;; skip ihr_fee
-    int fwd_fee = in_msg_full_slice~load_coins();
-    return (in_msg_full_slice, fwd_fee);
+  in_msg_full_slice~load_msg_addr(); ;; skip dst
+  in_msg_full_slice~load_coins(); ;; skip value
+  in_msg_full_slice~skip_dict(); ;; skip extracurrency collection
+  in_msg_full_slice~load_coins(); ;; skip ihr_fee
+  int fwd_fee = in_msg_full_slice~load_coins();
+  return (in_msg_full_slice, fwd_fee);
 }
 
 ;; MSG BODY
@@ -805,29 +805,29 @@ const int MSG_OP_SIZE = 32;
 const int MSG_QUERY_ID_SIZE = 64;
 
 (slice, int) ~load_op(slice s) inline {
-    return s.load_uint(MSG_OP_SIZE);
+  return s.load_uint(MSG_OP_SIZE);
 }
 (slice, ()) ~skip_op(slice s) inline {
-    return (s.skip_bits(MSG_OP_SIZE), ());
+  return (s.skip_bits(MSG_OP_SIZE), ());
 }
 builder store_op(builder b, int op) inline {
-    return b.store_uint(op, MSG_OP_SIZE);
+  return b.store_uint(op, MSG_OP_SIZE);
 }
 
 (slice, int) ~load_query_id(slice s) inline {
-    return s.load_uint(MSG_QUERY_ID_SIZE);
+  return s.load_uint(MSG_QUERY_ID_SIZE);
 }
 (slice, ()) ~skip_query_id(slice s) inline {
-    return (s.skip_bits(MSG_QUERY_ID_SIZE), ());
+  return (s.skip_bits(MSG_QUERY_ID_SIZE), ());
 }
 builder store_query_id(builder b, int query_id) inline {
-    return b.store_uint(query_id, MSG_QUERY_ID_SIZE);
+  return b.store_uint(query_id, MSG_QUERY_ID_SIZE);
 }
 
 (slice, (int, int)) ~load_op_and_query_id(slice s) inline {
-    int op = s~load_op();
-    int query_id = s~load_query_id();
-    return (s, (op, query_id));
+  int op = s~load_op();
+  int query_id = s~load_query_id();
+  return (s, (op, query_id));
 }
 
 ;; SEND MODES - https://docs.ton.org/tvm.pdf page 137, SENDRAWMSG
@@ -874,11 +874,11 @@ const int RESERVE_BOUNCE_ON_ACTION_FAIL = 16;
 ;; Key is sha256 hash of string. Value is data encoded as described in "Data serialization" paragraph.
 ;; Snake format - must be prefixed with 0x00 byte
 (cell, ()) ~set_token_snake_metadata_entry(cell content_dict, int key, slice value) impure {
-    content_dict~udict_set_ref(256, key, begin_cell().store_uint(0, 8).store_slice(value).end_cell());
-    return (content_dict, ());
+  content_dict~udict_set_ref(256, key, begin_cell().store_uint(0, 8).store_slice(value).end_cell());
+  return (content_dict, ());
 }
 
 ;; On-chain content layout The first byte is 0x00 and the rest is key/value dictionary.
 cell create_token_onchain_metadata(cell content_dict) inline {
-    return begin_cell().store_uint(0, 8).store_dict(content_dict).end_cell();
+  return begin_cell().store_uint(0, 8).store_dict(content_dict).end_cell();
 }
