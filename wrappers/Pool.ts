@@ -44,19 +44,12 @@ export class Pool implements Contract {
     }
 
     // Send a message to create a new pool
-    static createPoolMessage(
-        startTime: number,
-        endTime: number,
-        poolFlag: number,
-        maxParticipants: number,
-        stakeAmount: bigint,
-    ) {
+    static createPoolMessage(startTime: number, endTime: number, maxParticipants: number, stakeAmount: bigint) {
         return beginCell()
             .storeUint(startTime, 32)
             .storeUint(endTime, 32)
             .storeUint(maxParticipants, 32)
             .storeUint(0, 32)
-            .storeUint(poolFlag, 64)
             .storeCoins(stakeAmount)
             .storeDict(Dictionary.empty())
             .storeDict(Dictionary.empty())
@@ -75,8 +68,8 @@ export class Pool implements Contract {
     }
 
     // Send a message to cancel a pool
-    static cancelPoolMessage(poolId: number): Cell {
-        return beginCell().storeUint(0x20, 32).storeUint(poolId, 32).endCell();
+    static cancelPoolMessage(poolId: number, seqno: number): Cell {
+        return beginCell().storeUint(seqno, 32).storeUint(0x20, 32).storeUint(poolId, 32).endCell();
     }
 
     // Send a message to update the contract code
@@ -117,14 +110,14 @@ export class Pool implements Contract {
         provider: ContractProvider,
         via: Sender,
         value: bigint = toNano('1'),
-        opts: { stakerPubKey: KeyPair; poolId: number },
+        opts: { stakerPubKey: KeyPair; poolId: number; queryId?: number | undefined },
     ): Promise<void> {
         return await provider.internal(via, {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
                 .storeUint(0xb, 32)
-                .storeUint(Date.now(), 64)
+                .storeUint(opts.queryId || Date.now(), 64)
                 .storeUint(opts.poolId, 32)
                 .storeBuffer(opts.stakerPubKey.publicKey, 32)
                 .endCell(),
@@ -136,8 +129,8 @@ export class Pool implements Contract {
     }
 
     // Send a transaction to cancel a pool
-    async sendCancelPool(sender: Sender, provider: ContractProvider, poolId: number, value: bigint = toNano('0.1')) {
-        await provider.internal(sender, { value: value, body: Pool.cancelPoolMessage(poolId) });
+    async sendCancelPool(provider: ContractProvider, poolId: number, opts: { seqno: number }): Promise<void> {
+        return await provider.external(Pool.cancelPoolMessage(poolId, opts.seqno));
     }
 
     // Send a transaction to update the contract code
@@ -167,8 +160,7 @@ export class Pool implements Contract {
         const args = new TupleBuilder();
         args.writeNumber(poolId);
         const result = await provider.get('get_participants', args.build());
-        const participantsList = result.stack.readCell();
-        return parseParticipantsList(participantsList);
+        return parseParticipantsList(result.stack.readLispList());
     }
 
     async sendSimple(provider: ContractProvider, via: Sender, opts: { value: bigint; comment?: string }) {
