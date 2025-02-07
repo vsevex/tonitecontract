@@ -14,17 +14,15 @@ export function parsePoolsList(tuples: TupleItem[]): PoolTuple[] {
         const endTime = (items[2] as TupleItemInt).value;
         const maxParticipants = (items[3] as TupleItemInt).value;
         const currentParticipantCount = (items[4] as TupleItemInt).value;
-        const poolFlags = (items[5] as TupleItemInt).value;
-        const stakeAmount = (items[6] as TupleItemInt).value;
-        const participants = (items[7] as TupleItemCell).cell;
-        const results = (items[8] as TupleItemCell).cell;
-        const rewards = (items[9] as TupleItemCell).cell;
-        const state = (items[10] as TupleItemCell).cell;
+        const stakeAmount = (items[5] as TupleItemInt).value;
+        const participants = (items[6] as TupleItemCell).cell;
+        const results = (items[7] as TupleItemCell).cell;
+        const rewards = (items[8] as TupleItemCell).cell;
+        const state = (items[9] as TupleItemCell).cell;
 
         pools.push({
             poolId,
             startTime,
-            poolFlags,
             endTime,
             maxParticipants,
             currentParticipantCount,
@@ -40,15 +38,18 @@ export function parsePoolsList(tuples: TupleItem[]): PoolTuple[] {
 }
 
 // Helper function to parse the list of participants
-export function parseParticipantsList(participantsCell: Cell): ParticipantTuple[] {
+export function parseParticipantsList(tuples: TupleItem[]): ParticipantTuple[] {
     const participants: ParticipantTuple[] = [];
-    let currentCell = participantsCell.beginParse();
+    if (tuples.length === 0) return [];
 
-    while (currentCell.remainingBits > 0) {
-        const stakerPubkey = currentCell.loadUint(256);
-        const entryWc = currentCell.loadInt(8);
-        const entryAddress = currentCell.loadUint(256);
-        const stakeAmount = currentCell.loadCoins();
+    for (let i = 0; i < tuples.length; i++) {
+        const tuple = tuples[i] as Tuple;
+        const items = tuple.items;
+
+        const stakerPubkey = (items[0] as TupleItemInt).value;
+        const entryWc = (items[1] as TupleItemInt).value;
+        const entryAddress = (items[2] as TupleItemInt).value;
+        const stakeAmount = (items[3] as TupleItemInt).value;
 
         participants.push({
             stakerPubkey,
@@ -65,7 +66,6 @@ export function parseParticipantsList(participantsCell: Cell): ParticipantTuple[
 export interface PoolTuple {
     poolId: bigint;
     startTime: bigint;
-    poolFlags: bigint;
     endTime: bigint;
     maxParticipants: bigint;
     currentParticipantCount: bigint;
@@ -77,8 +77,8 @@ export interface PoolTuple {
 }
 
 export interface ParticipantTuple {
-    stakerPubkey: number;
-    entryWc: number;
-    entryAddress: number;
+    stakerPubkey: bigint;
+    entryWc: bigint;
+    entryAddress: bigint;
     stakeAmount: bigint;
 }
