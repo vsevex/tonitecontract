@@ -1,3 +1,13 @@
+{-
+    Contract Name: Staking Pool Contract (Reward-Based)
+    Purpose: A staking pool smart contract that enables participants
+             to contribute a fixed stake and distributes rewards 
+             to selected winners upon pool closure.
+    Author: Vsevolod V. Melyukov
+    Created On: 01/01/2025
+    Version: 0.0.1
+-}
+
 #include "imports/stdlib.fc";
 
 ;; Returns current sequence number
