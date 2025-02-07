@@ -18,3 +18,7 @@ const int OP_UPDATE_POOL = 41;
 ;; TON constants
 const int milliton = 1000000;
 const int ton      = 1000000000;
+
+;; Helper constants
+const int REWARD_PERCENT = 30;
+const int POOL_FEE = 10;
