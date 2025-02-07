@@ -35,13 +35,12 @@
 -}
 
 ;; Function to create a new pool
-(cell, ()) ~store_pool(cell pools, int pool_id, int start_time, int end_time, int maximum_participants, int current_participant_count, int pool_flag, int stake_amount, cell participants, cell results, cell rewards, cell state) {
+(cell, ()) ~store_pool(cell pools, int pool_id, int start_time, int end_time, int maximum_participants, int current_participant_count, int stake_amount, cell participants, cell results, cell rewards, cell state) {
     pools~udict_set_builder(32, pool_id, begin_cell()
         .store_uint(start_time, 32) ;; protected, applies automatically on the chain
         .store_uint(end_time, 32) ;; assigned by the creator, can be modified
         .store_uint(maximum_participants, 32) ;; protected, assigned by the owner
         .store_uint(current_participant_count, 32) ;; will be modified on each pool join
-        .store_uint(pool_flag, 64) ;; status of the pool, can be updated or changed by the pool owner
         .store_grams(stake_amount) ;; protected, assigned at the pool creation
         .store_dict(participants) ;; list of participants, will be updated on each pool join
         .store_dict(results) ;; list of winners, will be updated on pool closure
@@ -53,13 +52,12 @@
 }
 
 ;; Function to return the pool data
-(slice, (int, int, int, int, int, int, cell, cell, cell, cell)) ~load_pool_fields(slice pool) {
+(slice, (int, int, int, int, int, cell, cell, cell, cell)) ~load_pool_fields(slice pool) {
     var fields = (
         pool~load_uint(32), ;; start_time
         pool~load_uint(32), ;; end_time
         pool~load_uint(32), ;; max_participants
         pool~load_uint(32), ;; current_participant_count
-        pool~load_uint(64), ;; pool_flag
         pool~load_grams(), ;; stake_amount
         pool~load_dict(), ;; participants
         pool~load_dict(), ;; results
@@ -72,7 +70,7 @@
 (slice, (int, int, int)) ~load_participant(slice participant) {
     var fields = (
         participant~load_int(8), ;; wc
-        participant~load_uint(32), ;; address
+        participant~load_uint(256), ;; address
         participant~load_grams() ;; stake_amount
     );
     return (participant, fields);
@@ -80,7 +78,7 @@
 
 ;; Simple money transfer
 () send_money(int wc, int address, int amount) impure {
-    send_raw_message(begin_cell()
+    return send_raw_message(begin_cell()
         .store_uint(0xc4, 9)
         .store_int(wc, 8)
         .store_uint(address, 32)
@@ -110,12 +108,34 @@ _ pack_state(int seqno, int owner_pubkey, cell pools) inline_ref {
 () return_deposits(cell participants) impure {
     int player_pubkey = -1;
     do {
-        (int player_pubkey, var entry, var f) = participants.udict_get_next?(32, player_pubkey);
+        (player_pubkey, slice entry, int f) = participants.udict_get_next?(32, player_pubkey);
         if (f) {
-            var (player_wc, player_address, received_amount) = (entry~load_int(8), entry~load_uint(32), entry~load_grams());
-            send_money(player_wc, player_address, received_amount);
+            (int player_wc, int player_address, int amount) = (entry~load_int(8), entry~load_uint(256), entry~load_grams());
+            send_money(player_wc, player_address, amount);
         }
     } until (~ f);
+}
+
+(cell) calculate_reward(int current_participant_count, int stake_amount, cell rewards) impure {
+    if (current_participant_count <= 2) {
+        return new_dict();
+    }
+
+    int count = 1;
+    int winners_count = current_participant_count * REWARD_PERCENT / 100;
+    int total_weight = winners_count * (winners_count + 1) / 2;
+    int total_stake = (current_participant_count * stake_amount);
+    int fee = total_stake * POOL_FEE / 100;
+    int available_pool = total_stake - fee;
+
+    while ((count << 1) < total_weight) {
+        int weight = winners_count - count + 1;
+        int reward = available_pool * (weight / total_weight);
+        rewards~udict_set_builder(32, count, begin_cell().store_grams(reward));
+        count += 1;
+    }
+
+    return rewards;
 }
 
 () recv_internal(int balance, cell in_msg_cell, slice in_msg) impure {
@@ -149,38 +169,36 @@ _ pack_state(int seqno, int owner_pubkey, cell pools) inline_ref {
             return send_message_back(addr_slice, 0xfffffffe, query_id, op, 36, 0, 64);
         }
         
-        (int start_time, int end_time, int max_participants, int current_participant_count, int pool_flag, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
+        (int start_time, int end_time, int max_participants, int current_participant_count, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
         (slice entry, int entry_found) = participants.udict_get?(32, staker_pubkey); ;; Check if the staker is already in the pool
-        var (entry_wc, entry_addr, stake_amount) = (src_wc, src_addr, 0);
-        if (entry_found) {
-            (entry_wc, entry_addr, stake_amount) = entry~load_participant();
-        }
 
-        if (pool_flag & 0x8000000000000000) {
-            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 53, 0, 64);
+        if (entry_found) {
+            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 52, 0, 64);
         }
         if (now() > end_time) { ;; Pool is closed
             return send_message_back(addr_slice, 0xfffffffe, query_id, op, 47, 0, 64);
         }
-        if (entry_found) {
-            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 52, 0, 64);
+        if (stake_amount != balance) {
+            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 50, 0, 64); ;; insufficient balance
         }
         if (current_participant_count >= max_participants) {
             return send_message_back(addr_slice, 0xfffffffe, query_id, op, 51, 0, 64);
         }
+        (int entry_wc, int entry_addr) = (src_wc, src_addr);
 
-        participants~udict_set_builder(32, staker_pubkey, begin_cell()
+
+        builder value = begin_cell()
             .store_int(entry_wc, 8)
-            .store_uint(entry_addr, 32)
-            .store_coins(balance)
-        );
-
-        current_participant_count = current_participant_count + 1;
-        ~dump(current_participant_count);
-
-        pools~store_pool(pool_id, start_time, end_time, max_participants, current_participant_count, pool_flag, stake_amount, participants, results, rewards, state);
+            .store_uint(entry_addr, 256)
+            .store_grams(balance);
+        
+        participants~udict_set_builder(32, staker_pubkey, value);
+        current_participant_count += 1;
+        (slice reward, int reward_found) = rewards.udict_get?(32, staker_pubkey);
+        rewards = calculate_reward(current_participant_count, stake_amount, reward_found ? rewards : new_dict());
+        
+        pools~store_pool(pool_id, start_time, end_time, max_participants, current_participant_count, stake_amount, participants, results, rewards, state);
         set_data(pack_state(stored_seqno, owner_pubkey, pools));
-        accept_message();
         return ();
     }
 
@@ -214,12 +232,10 @@ _ pack_state(int seqno, int owner_pubkey, cell pools) inline_ref {
         (slice pool, int pool_found) = pools.udict_get?(32, pool_id);
         throw_unless(36, pool_found);
 
-        (int start_time, int end_time, int max_participants, int current_participant_count, int pool_flag, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
+        (int start_time, int end_time, int max_participants, int current_participant_count, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
 
-        ifnot (pool_flag & 0x8000000000000000) {
-            ;; Return all current stakes
-            return_deposits(participants);
-        }
+        ;; Return all current stakes
+        return_deposits(participants);        
 
         pools~udict_delete_get?(32, pool_id);
     } elseif (op == OP_UPDATE_POOL) {
@@ -251,18 +267,35 @@ _ get_pools() method_id {
     do {
         (id, slice pool, f) = pools.udict_get_prev?(32, id);
         if (f) {
-            (int start_time, int end_time, int max_participants, int current_participant_count, int pool_flag, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
-            l = cons(pool_tuple(id, start_time, end_time, max_participants, current_participant_count, pool_flag, stake_amount, participants, results, rewards, state), l);
+            (int start_time, int end_time, int max_participants, int current_participant_count, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
+            l = cons(pool_tuple(id, start_time, end_time, max_participants, current_participant_count, stake_amount, participants, results, rewards, state), l);
         }
     } until (~ f);
 
     return l;
 }
 
+;; Returns the list of rewards for a pool
+(_) get_rewards(int pool_id) method_id {
+    slice ds = get_data().begin_parse().skip_bits(32 + 256);
+    cell pools = ds~load_dict();
+    if (pools.null?()) {
+        return nil;
+    }
+    
+    (slice pool, int pool_found) = pools.udict_get?(32, pool_id);
+    if (pool_found) {
+        return nil;
+    }
+
+    (int start_time, int end_time, int max_participants, int current_participant_count, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
+
+    return rewards;
+}
+
 ;; Returns list of all participants in a game
 _ get_participants(int pool_id) method_id {
     slice ds = get_data().begin_parse().skip_bits(32 + 256);
-    ds~load_grams();
     cell pools = ds~load_dict();
     if (pools.null?()) {
         return nil;
@@ -270,16 +303,18 @@ _ get_participants(int pool_id) method_id {
 
     (slice pool, int pool_found) = pools.udict_get?(32, pool_id);
     throw_unless(36, pool_found);
-    (int start_time, int end_time, int max_participants, int current_participant_count, int pool_flag, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
-
+    (int start_time, int end_time, int max_participants, int current_participant_count, int stake_amount, cell participants, cell results, cell rewards, cell state) = pool~load_pool_fields();
+    
     var l = nil;
     int staker_pubkey = (1 << 255) + ((1 << 255) - 1);
+
     do {
-        (staker_pubkey, var entry, var f) = participants.udict_get_prev?(256, staker_pubkey);
+        (staker_pubkey, slice entry, int f) = participants.udict_get_prev?(32, staker_pubkey);
         if (f) {
             (int entry_wc, int entry_addr, int stake_amount) = entry~load_participant();
             l = cons(participant_tuple(staker_pubkey, entry_wc, entry_addr, stake_amount), l);
         }
     } until (~ f);
+
     return l;
 }
