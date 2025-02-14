@@ -9,16 +9,15 @@
 -}
 
 ;; OP codes
-const int OP_UNKNOWN = 0;
-const int OP_JOIN_POOL = 11;
+const int OP_UNKNOWN     = 0;
+const int OP_JOIN_POOL   = 11;
 const int OP_CREATE_POOL = 31;
 const int OP_CANCEL_POOL = 32;
 const int OP_UPDATE_POOL = 41;
-
-;; TON constants
-const int milliton = 1000000;
-const int ton      = 1000000000;
+const int OP_CLOSE_POOL  = 101;
+const int OP_WITHDRAW    = 7;
 
 ;; Helper constants
-const int REWARD_PERCENT = 30;
-const int POOL_FEE = 10;
+const int REWARD_PERCENT         = 30;
+const int POOL_FEE               = 10;
+const int MINIMUM_REWARD_PERCENT = 150;
