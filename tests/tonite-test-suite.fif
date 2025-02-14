@@ -1,0 +1,989 @@
+"TonUtil.fif" include
+"Asm.fif" include
+// automatically generated from `/Users/vsevex/TON/ton/crypto/smartcont/stdlib.fc` `./tonite.fc` incl:`././constants.fc` incl:`././getters.fc` incl:`./././helpers.fc` 
+PROGRAM{
+  DECLPROC send_message_back
+  DECLPROC math::pow
+  77871 DECLMETHOD get_seqno
+  69402 DECLMETHOD get_owner_pubkey
+  104128 DECLMETHOD balance
+  DECLPROC pack_state
+  DECLPROC unpack_state
+  DECLPROC ~store_pool
+  DECLPROC ~load_pool_fields
+  DECLPROC ~load_participant
+  DECLPROC send_money
+  DECLPROC return_deposits
+  DECLPROC min_reward
+  DECLPROC sum_range
+  DECLPROC calculate_reward
+  DECLPROC populate_winners
+  DECLPROC recv_internal
+  DECLPROC recv_external
+  89067 DECLMETHOD get_pools
+  129338 DECLMETHOD get_rewards
+  79037 DECLMETHOD get_participants
+  send_message_back PROC:<{
+    //  address ans_tag query_id body extra grams mode
+    0 PUSHINT	//  address ans_tag query_id body extra grams mode _8=0
+    24 PUSHINT	//  address ans_tag query_id body extra grams mode _8=0 _9=24
+    NEWC	//  address ans_tag query_id body extra grams mode _8=0 _9=24 _10
+    6 STU	//  address ans_tag query_id body extra grams mode _8=0 _12
+    s0 s8 XCHG2	//  _8=0 ans_tag query_id body extra grams mode _12 address
+    STSLICER	//  _8=0 ans_tag query_id body extra grams mode _13
+    ROT	//  _8=0 ans_tag query_id body extra mode _13 grams
+    STGRAMS	//  _8=0 ans_tag query_id body extra mode _14
+    s1 s6 XCHG	//  mode ans_tag query_id body extra _8=0 _14
+    107 STU	//  mode ans_tag query_id body extra _28
+    s1 s4 XCHG	//  mode extra query_id body ans_tag _28
+    32 STU	//  mode extra query_id body _30
+    s1 s2 XCHG	//  mode extra body query_id _30
+    64 STU	//  mode extra body msg
+    OVER	//  mode extra body msg body
+    -1 GTINT	//  mode extra body msg _34
+    IF:<{	//  mode extra body msg
+      32 STU	//  mode extra msg
+    }>ELSE<{
+      NIP	//  mode extra msg
+    }>
+    OVER	//  mode extra msg extra
+    -1 GTINT	//  mode extra msg _39
+    IF:<{	//  mode extra msg
+      32 STU	//  mode msg
+    }>ELSE<{
+      NIP	//  mode msg
+    }>
+    ENDC	//  mode _43
+    SWAP	//  _43 mode
+    SENDRAWMSG
+  }>
+  math::pow PROC:<{
+    //  n e
+    DUP	//  n e e
+    0 EQINT	//  n e _3
+    IFJMP:<{	//  n e
+      2DROP	// 
+      1 PUSHINT	//  _4=1
+    }>	//  n e
+    DUP	//  n e e
+    1 EQINT	//  n e _6
+    IFJMP:<{	//  n e
+      DROP	//  n
+    }>	//  n e
+    DUP	//  n e e
+    1 RSHIFT#	//  n e _9
+    s2 s(-1) PUXC	//  n e n _9
+    math::pow CALLDICT	//  n e p
+    DUP	//  n e p p
+    MUL	//  n e p
+    SWAP	//  n p e
+    1 MODPOW2#	//  n p _13
+    1 EQINT	//  n p _15
+    IF:<{	//  n p
+      SWAP	//  p n
+      MUL	//  p
+    }>ELSE<{
+      NIP	//  p
+    }>
+  }>
+  get_seqno PROC:<{
+    // 
+    c4 PUSH	//  _0
+    CTOS	//  _1
+    32 PLDU	//  _3
+  }>
+  get_owner_pubkey PROC:<{
+    // 
+    c4 PUSH	//  _1
+    CTOS	//  _2
+    32 PUSHINT	//  _2 _3=32
+    SDSKIPFIRST	//  ds
+    32 LDU	//  _9 _8
+    DROP	//  _5
+  }>
+  balance PROC:<{
+    // 
+    BALANCE
+    FIRST	//  _0
+  }>
+  pack_state PROCREF:<{
+    //  seqno random_locked pubkey owner ecvrf pools
+    NEWC	//  seqno random_locked pubkey owner ecvrf pools _6
+    s0 s3 XCHG2	//  seqno random_locked pubkey pools ecvrf _6 owner
+    STSLICER	//  seqno random_locked pubkey pools ecvrf _7
+    SWAP	//  seqno random_locked pubkey pools _7 ecvrf
+    STSLICER	//  seqno random_locked pubkey pools _8
+    ENDC	//  seqno random_locked pubkey pools _9
+    s0 s4 XCHG
+    NEWC	//  _9 random_locked pubkey pools seqno _10
+    32 STU	//  _9 random_locked pubkey pools _12
+    s1 s3 XCHG	//  _9 pools pubkey random_locked _12
+    1 STU	//  _9 pools pubkey _14
+    256 STU	//  _9 pools _16
+    s1 s2 XCHG	//  pools _9 _16
+    STREF	//  pools _17
+    STDICT	//  _18
+    ENDC	//  _19
+  }>
+  unpack_state PROC:<{
+    // 
+    c4 PUSH	//  _1
+    CTOS	//  cs
+    32 LDU	//  seq_no cs
+    1 LDU	//  seq_no random_locked cs
+    256 LDU	//  seq_no random_locked pubkey cs
+    LDREF	//  seq_no random_locked pubkey _16 cs
+    SWAP	//  seq_no random_locked pubkey cs _16
+    CTOS	//  seq_no random_locked pubkey cs adrs
+    LDMSGADDR	//  seq_no random_locked pubkey cs _21 adrs
+    LDMSGADDR	//  seq_no random_locked pubkey cs _21 _40 _39
+    DROP	//  seq_no random_locked pubkey cs owner ecvrf
+    s0 s2 XCHG	//  seq_no random_locked pubkey ecvrf owner cs
+    LDDICT	//  seq_no random_locked pubkey ecvrf owner pools cs
+    ENDS
+    s1 s2 XCHG	//  seq_no random_locked pubkey owner ecvrf pools
+  }>
+  ~store_pool PROC:<{
+    //  pools pool_id start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards state
+    s0 s9 XCHG
+    NEWC	//  pools pool_id state end_time max_participants current_participant_count pool_status stake_amount participants results rewards start_time _13
+    32 STU	//  pools pool_id state end_time max_participants current_participant_count pool_status stake_amount participants results rewards _15
+    s1 s8 XCHG	//  pools pool_id state rewards max_participants current_participant_count pool_status stake_amount participants results end_time _15
+    32 STU	//  pools pool_id state rewards max_participants current_participant_count pool_status stake_amount participants results _17
+    s1 s6 XCHG	//  pools pool_id state rewards results current_participant_count pool_status stake_amount participants max_participants _17
+    32 STU	//  pools pool_id state rewards results current_participant_count pool_status stake_amount participants _19
+    s1 s4 XCHG	//  pools pool_id state rewards results participants pool_status stake_amount current_participant_count _19
+    32 STU	//  pools pool_id state rewards results participants pool_status stake_amount _21
+    s1 s2 XCHG	//  pools pool_id state rewards results participants stake_amount pool_status _21
+    1 STU	//  pools pool_id state rewards results participants stake_amount _23
+    SWAP	//  pools pool_id state rewards results participants _23 stake_amount
+    STGRAMS	//  pools pool_id state rewards results participants _24
+    STDICT	//  pools pool_id state rewards results _25
+    STDICT	//  pools pool_id state rewards _26
+    STDICT	//  pools pool_id state _27
+    STDICT	//  pools pool_id _28
+    s0 s2 XCHG
+    32 PUSHINT	//  _28 pool_id pools _29=32
+    DICTUSETB	//  pools
+  }>
+  ~load_pool_fields PROC:<{
+    //  pool
+    32 LDU	//  _2 pool
+    32 LDU	//  _2 _5 pool
+    32 LDU	//  _2 _5 _8 pool
+    32 LDU	//  _2 _5 _8 _11 pool
+    1 LDU	//  _2 _5 _8 _11 _14 pool
+    LDGRAMS	//  _2 _5 _8 _11 _14 _17 pool
+    LDDICT	//  _2 _5 _8 _11 _14 _17 _19 pool
+    LDDICT	//  _2 _5 _8 _11 _14 _17 _19 _21 pool
+    LDDICT	//  _2 _5 _8 _11 _14 _17 _19 _21 _23 pool
+    LDDICT	//  fields fields fields fields fields fields fields fields fields fields pool
+    10 -ROLL	//  pool fields fields fields fields fields fields fields fields fields fields
+  }>
+  ~load_participant PROC:<{
+    //  participant
+    8 LDI	//  _2 participant
+    LDMSGADDR	//  _2 _5 participant
+    LDGRAMS	//  _2 _5 _7 participant
+    8 LDU	//  fields fields fields fields participant
+    4 -ROLL	//  participant fields fields fields fields
+  }>
+  send_money PROC:<{
+    //  wc address amount
+    s2 POP	//  amount address
+    0 PUSHINT	//  amount address _3=0
+    24 PUSHINT	//  amount address _3=0 _4=24
+    NEWC	//  amount address _3=0 _4=24 _5
+    6 STU	//  amount address _3=0 _7
+    ROT	//  amount _3=0 _7 address
+    STSLICER	//  amount _3=0 _8
+    ROT	//  _3=0 _8 amount
+    STGRAMS	//  _3=0 _9
+    107 STU	//  _23
+    ENDC	//  _24
+    3 PUSHINT	//  _24 _25=3
+    SENDRAWMSG
+  }>
+  return_deposits PROC:<{
+    //  participants
+    -1 PUSHINT	//  participants staker=-1
+    UNTIL:<{
+      OVER
+      8 PUSHPOW2	//  participants staker participants _5=256
+      DICTUGETNEXT
+      NULLSWAPIFNOT2	//  participants entry staker f
+      DUP	//  participants entry staker f f
+      IF:<{	//  participants entry staker f
+        s0 s2 XCHG	//  participants f staker entry
+        ~load_participant CALLDICT	//  participants f staker _22 _23 _24 _25 _26
+        DROP
+        1 3 BLKDROP2	//  participants f staker staker_wc staker_addr amount
+        send_money CALLDICT
+      }>ELSE<{
+        s2 POP	//  participants f staker
+      }>
+      SWAP	//  participants staker f
+      NOT	//  participants staker _14
+    }>	//  participants staker
+    2DROP	// 
+  }>
+  min_reward PROCINLINE:<{
+    //  stake_amount
+    150 PUSHINT	//  stake_amount _1=150
+    MUL	//  _2
+    100 PUSHINT	//  _2 _3=100
+    DIV	//  _4
+  }>
+  sum_range PROCINLINE:<{
+    //  n
+    DUP	//  n n
+    INC	//  n _2
+    MUL	//  _3
+    1 RSHIFT#	//  _5
+  }>
+  calculate_reward PROC:<{
+    //  current_participant_count stake_amount rewards
+    s2 PUSH	//  current_participant_count stake_amount rewards current_participant_count
+    3 LESSINT	//  current_participant_count stake_amount rewards _4
+    IFJMP:<{	//  current_participant_count stake_amount rewards
+      3 BLKDROP	// 
+      NEWDICT	//  _5
+    }>	//  current_participant_count stake_amount rewards
+    0 PUSHINT	//  current_participant_count stake_amount rewards count=0
+    s3 PUSH	//  current_participant_count stake_amount rewards count=0 current_participant_count
+    30 MULCONST	//  current_participant_count stake_amount rewards count=0 _10
+    100 PUSHINT	//  current_participant_count stake_amount rewards count=0 _10 _11=100
+    DIVR	//  current_participant_count stake_amount rewards count=0 winners_count
+    s4 s3 XCPU	//  winners_count stake_amount rewards count=0 current_participant_count stake_amount
+    MUL	//  winners_count stake_amount rewards count=0 total_stake
+    DUP	//  winners_count stake_amount rewards count=0 total_stake total_stake
+    10 MULCONST	//  winners_count stake_amount rewards count=0 total_stake _23
+    100 PUSHINT	//  winners_count stake_amount rewards count=0 total_stake _23 _24=100
+    DIV	//  winners_count stake_amount rewards count=0 total_stake fee
+    s0 s4 XCHG	//  winners_count fee rewards count=0 total_stake stake_amount
+    min_reward INLINECALLDICT	//  winners_count fee rewards count=0 total_stake minimum_reward
+    s0 s5 PUSH2	//  winners_count fee rewards count=0 total_stake minimum_reward minimum_reward winners_count
+    MUL	//  winners_count fee rewards count=0 total_stake minimum_reward minimum_total_payout
+    s2 s5 XCHG2	//  winners_count minimum_total_payout rewards count=0 minimum_reward total_stake fee
+    SUB	//  winners_count minimum_total_payout rewards count=0 minimum_reward _31
+    s0 s4 XCHG2	//  winners_count minimum_reward rewards count=0 _31 minimum_total_payout
+    SUB	//  winners_count minimum_reward rewards count=0 available_pool
+    WHILE:<{
+      s1 s4 PUSH2	//  winners_count minimum_reward rewards count available_pool count winners_count
+      LESS	//  winners_count minimum_reward rewards count available_pool _35
+    }>DO<{	//  winners_count minimum_reward rewards count available_pool
+      s4 s1 PUSH2	//  winners_count minimum_reward rewards count available_pool winners_count count
+      SUB	//  winners_count minimum_reward rewards count available_pool _37
+      s1 s(-1) PUXC	//  winners_count minimum_reward rewards count available_pool available_pool _37
+      MUL	//  winners_count minimum_reward rewards count available_pool _38
+      s5 s2 PUSH2	//  winners_count minimum_reward rewards count available_pool _38 winners_count count
+      SUB	//  winners_count minimum_reward rewards count available_pool _38 _39
+      sum_range INLINECALLDICT	//  winners_count minimum_reward rewards count available_pool _38 _40
+      DIV	//  winners_count minimum_reward rewards count available_pool extra_reward
+      s4 s0 PUSH2	//  winners_count minimum_reward rewards count available_pool extra_reward minimum_reward extra_reward
+      ADD	//  winners_count minimum_reward rewards count available_pool extra_reward final_reward
+      NEWC	//  winners_count minimum_reward rewards count available_pool extra_reward final_reward _45
+      SWAP	//  winners_count minimum_reward rewards count available_pool extra_reward _45 final_reward
+      STGRAMS	//  winners_count minimum_reward rewards count available_pool extra_reward _46
+      s3 PUSH	//  winners_count minimum_reward rewards count available_pool extra_reward _46 count
+      INC	//  winners_count minimum_reward rewards count available_pool extra_reward _46 _48
+      s1 s0 s5 XCHG3
+      32 PUSHINT	//  winners_count minimum_reward extra_reward count available_pool _46 _48 rewards _49=32
+      DICTUSETB	//  winners_count minimum_reward extra_reward count available_pool rewards
+      s0 s3 XCHG	//  winners_count minimum_reward rewards count available_pool extra_reward
+      SUB	//  winners_count minimum_reward rewards count available_pool
+      SWAP	//  winners_count minimum_reward rewards available_pool count
+      INC	//  winners_count minimum_reward rewards available_pool count
+      SWAP	//  winners_count minimum_reward rewards count available_pool
+    }>	//  winners_count minimum_reward rewards count available_pool
+    s2 s4 XCHG
+    4 BLKDROP	//  rewards
+  }>
+  populate_winners PROC:<{
+    c2 SAVE
+    SAMEALTSAVE	//  winner_indices vrfrand count incrementer current_participant_count
+    DUP	//  winner_indices vrfrand count incrementer current_participant_count current_participant_count
+    30 MULCONST	//  winner_indices vrfrand count incrementer current_participant_count _7
+    100 PUSHINT	//  winner_indices vrfrand count incrementer current_participant_count _7 _8=100
+    DIVR	//  winner_indices vrfrand count incrementer current_participant_count winner_count
+    WHILE:<{
+      s0 s3 PUSH2	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_count count
+      GREATER	//  winner_indices vrfrand count incrementer current_participant_count winner_count _10
+    }>DO<{	//  winner_indices vrfrand count incrementer current_participant_count winner_count
+      2 PUSHINT	//  winner_indices vrfrand count incrementer current_participant_count winner_count _12=2
+      s4 s3 PUSH2	//  winner_indices vrfrand count incrementer current_participant_count winner_count _12=2 count incrementer
+      ADD	//  winner_indices vrfrand count incrementer current_participant_count winner_count _12=2 _13
+      math::pow CALLDICT	//  winner_indices vrfrand count incrementer current_participant_count winner_count _14
+      s5 s(-1) PUXC	//  winner_indices vrfrand count incrementer current_participant_count winner_count vrfrand _14
+      RSHIFT	//  winner_indices vrfrand count incrementer current_participant_count winner_count _15
+      s2 PUSH	//  winner_indices vrfrand count incrementer current_participant_count winner_count _15 current_participant_count
+      MOD	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_index
+      s0 s6 PUSH2
+      32 PUSHINT	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_index winner_index winner_indices _19=32
+      DICTUGET
+      NULLSWAPIFNOT	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_index _32 _33
+      NIP	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_index found
+      IFJMP:<{	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_index
+        2DROP	//  winner_indices vrfrand count incrementer current_participant_count
+        SWAP	//  winner_indices vrfrand count current_participant_count incrementer
+        INC	//  winner_indices vrfrand count current_participant_count _22
+        SWAP	//  winner_indices vrfrand count _22 current_participant_count
+        populate_winners CALLDICT	//  _34 _35
+        RETALT
+      }>	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_index
+      s4 PUSH
+      NEWC	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_index count _25
+      32 STU	//  winner_indices vrfrand count incrementer current_participant_count winner_count winner_index _27
+      s0 s1 s7 XCHG3
+      32 PUSHINT	//  winner_count vrfrand count incrementer current_participant_count _27 winner_index winner_indices _28=32
+      DICTUSETB	//  winner_count vrfrand count incrementer current_participant_count winner_indices
+      s0 s3 XCHG	//  winner_count vrfrand winner_indices incrementer current_participant_count count
+      INC	//  winner_count vrfrand winner_indices incrementer current_participant_count count
+      s0 s3 XCHG
+      s0 s5 XCHG	//  winner_indices vrfrand count incrementer current_participant_count winner_count
+    }>	//  winner_indices vrfrand count incrementer current_participant_count winner_count
+    s3 s4 XCHG
+    4 BLKDROP	//  winner_indices count
+  }>
+  recv_internal PROC:<{
+    //  balance in_msg_cell in_msg
+    SWAP	//  balance in_msg in_msg_cell
+    CTOS	//  balance in_msg cs
+    4 LDU	//  balance in_msg flags cs
+    SWAP
+    1 PUSHINT	//  balance in_msg cs flags _9=1
+    AND	//  balance in_msg cs _10
+    IFJMP:<{	//  balance in_msg cs
+      3 BLKDROP	// 
+    }>	//  balance in_msg cs
+    OVER	//  balance in_msg cs in_msg
+    SEMPTY	//  balance in_msg cs _11
+    IFJMP:<{	//  balance in_msg cs
+      3 BLKDROP	// 
+    }>	//  balance in_msg cs
+    LDMSGADDR	//  balance in_msg _217 _216
+    DROP	//  balance in_msg addr_slice
+    DUP	//  balance in_msg addr_slice addr_slice
+    REWRITESTDADDR	//  balance in_msg addr_slice staker_wc staker_addr
+    s0 s3 XCHG	//  balance staker_addr addr_slice staker_wc in_msg
+    32 LDU	//  balance staker_addr addr_slice staker_wc op in_msg
+    unpack_state CALLDICT	//  balance staker_addr addr_slice staker_wc op in_msg stored_seqno random_locked pubkey owner ecvrf pools
+    s7 PUSH
+    110947496 PUSHINT	//  balance staker_addr addr_slice staker_wc op in_msg stored_seqno random_locked pubkey owner ecvrf pools op _29=110947496
+    EQUAL	//  balance staker_addr addr_slice staker_wc op in_msg stored_seqno random_locked pubkey owner ecvrf pools _30
+    IFJMP:<{	//  balance staker_addr addr_slice staker_wc op in_msg stored_seqno random_locked pubkey owner ecvrf pools
+      s4 POP
+      s6 POP
+      s6 POP
+      s7 POP
+      s7 POP	//  pools pubkey addr_slice owner ecvrf in_msg stored_seqno
+      s4 s2 XCPU	//  pools pubkey stored_seqno owner ecvrf in_msg addr_slice ecvrf
+      SDEQ	//  pools pubkey stored_seqno owner ecvrf in_msg _31
+      0 EQINT	//  pools pubkey stored_seqno owner ecvrf in_msg _33
+      IFJMP:<{	//  pools pubkey stored_seqno owner ecvrf in_msg
+        6 BLKDROP	// 
+      }>	//  pools pubkey stored_seqno owner ecvrf in_msg
+      0 PUSHINT	//  pools pubkey stored_seqno owner ecvrf in_msg random_locked=0
+      SWAP	//  pools pubkey stored_seqno owner ecvrf random_locked=0 in_msg
+      256 LDU	//  pools pubkey stored_seqno owner ecvrf random_locked=0 _229 _228
+      DROP	//  pools pubkey stored_seqno owner ecvrf random_locked=0 vrfrand
+      31 PUSHPOW2DEC	//  pools pubkey stored_seqno owner ecvrf random_locked=0 vrfrand pool_id=2147483647
+      UNTIL:<{
+        s7 PUSH
+        32 PUSHINT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool_id pools _44=32
+        DICTUGETPREV
+        NULLSWAPIFNOT2	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool pool_id f
+        DUP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool pool_id f f
+        IF:<{	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool pool_id f
+          s0 s2 XCHG	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id pool
+          ~load_pool_fields CALLDICT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id _243 _244 _245 _246 _247 _248 _249 _250 _251 _252 _253
+          DROP
+          s3 POP
+          s5 POP
+          s5 POP
+          s5 POP
+          s5 POP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id pool_status rewards participants results current_participant_count
+          NEWDICT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id pool_status rewards participants results current_participant_count winner_indices
+          s0 s5 XCHG	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id winner_indices rewards participants results current_participant_count pool_status
+          0 NEQINT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id winner_indices rewards participants results current_participant_count _61
+          IF:<{	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id winner_indices rewards participants results current_participant_count
+            s6 POP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand current_participant_count pool_id winner_indices rewards participants results
+            s1 s3 XCHG
+            0 PUSHINT
+            1 PUSHINT
+            s8 PUSH
+            s0 s3 XCHG
+            s0 s8 XCHG	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winner_indices vrfrand _64=0 _65=1 current_participant_count
+            populate_winners CALLDICT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners count
+            0 NEQINT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners _68
+            IF:<{	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners
+              256 PUSHPOW2DEC	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners staker_addr
+              0 PUSHINT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners staker_addr counter=0
+              UNTIL:<{
+                s1 s4 XCPU
+                8 PUSHPOW2	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter staker_addr participants _85=256
+                DICTUGETPREV
+                NULLSWAPIFNOT2	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter entry staker_addr d
+                DUP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter entry staker_addr d d
+                IF:<{	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter entry staker_addr d
+                  s0 s2 XCHG	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr entry
+                  ~load_participant CALLDICT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr _263 _264 _265 _266 _267
+                  NIP
+                  s3 POP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr index staker_wc staker_addr
+                  s2 s6 XCPU
+                  32 PUSHINT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc index winners _95=32
+                  DICTUGET
+                  NULLSWAPIFNOT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc _268 _269
+                  NIP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc winner_found
+                  IF:<{	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc
+                    s4 PUSH	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc counter
+                    INC	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc _100
+                    s7 PUSH
+                    32 PUSHINT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc _100 rewards _101=32
+                    DICTUGET
+                    NULLSWAPIFNOT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc _270 _271
+                    DROP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc reward
+                    LDGRAMS	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc _273 _272
+                    DROP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc grams
+                    NEWC	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc grams _107
+                    OVER	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc grams _107 grams
+                    STGRAMS	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc grams _108
+                    s3 PUSH	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc grams _108 staker_addr
+                    STSLICER	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_addr staker_wc grams _109
+                    s0 s6 s11 XCPUXC
+                    32 PUSHINT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand grams pool_id participants rewards winners counter d staker_addr staker_addr staker_wc _109 counter results _110=32
+                    DICTUSETB	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand grams pool_id participants rewards winners counter d staker_addr staker_addr staker_wc results
+                    s2 s10 XCHG2	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr staker_wc staker_addr grams
+                    send_money CALLDICT
+                    s0 s2 XCHG	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners staker_addr d counter
+                    INC	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners staker_addr d counter
+                    s0 s2 XCHG	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr
+                  }>ELSE<{
+                    2DROP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr
+                  }>
+                }>ELSE<{
+                  s2 POP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter d staker_addr
+                }>
+                SWAP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter staker_addr d
+                NOT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners counter staker_addr _115
+                s1 s2 XCHG	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners staker_addr counter _115
+              }>	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand results pool_id participants rewards winners staker_addr counter
+              s5 s6 XCHG
+              6 BLKDROP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool_id
+            }>ELSE<{
+              s3 s4 XCHG
+              4 BLKDROP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool_id
+            }>
+            FALSE	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool_id f
+            SWAP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id
+          }>ELSE<{
+            5 BLKDROP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id
+          }>
+        }>ELSE<{
+          s2 POP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand f pool_id
+        }>
+        SWAP	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool_id f
+        NOT	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool_id _117
+      }>	//  pools pubkey stored_seqno owner ecvrf random_locked vrfrand pool_id
+      2DROP	//  pools pubkey stored_seqno owner ecvrf random_locked
+      s3 s5 XCHG
+      s0 s4 XCHG
+      s0 s3 XCHG	//  stored_seqno random_locked pubkey owner ecvrf pools
+      pack_state INLINECALLDICT	//  _118
+      c4 POP
+    }>	//  balance staker_addr addr_slice staker_wc op in_msg stored_seqno random_locked pubkey owner ecvrf pools
+    s0 s6 XCHG	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf in_msg
+    64 LDU	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id in_msg
+    s8 PUSH	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id in_msg op
+    11 EQINT	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id in_msg _125
+    IFJMP:<{	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id in_msg
+      32 LDU	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id _277 _276
+      DROP	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id
+      s0 s7 PUSH2
+      32 PUSHINT	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id pool_id pools _132=32
+      DICTUGET
+      NULLSWAPIFNOT	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id pool pool_found
+      IFNOTJMP:<{	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id pool
+        s2 s8 XCHG
+        8 BLKDROP
+        s2 POP
+        s3 POP
+        s3 POP	//  query_id op addr_slice
+        4294967294 PUSHINT	//  query_id op addr_slice _134=4294967294
+        2SWAP
+        36 PUSHINT
+        0 PUSHINT
+        64 PUSHINT	//  addr_slice _134=4294967294 query_id op _135=36 _136=0 _137=64
+        send_message_back CALLDICT
+      }>	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id pool
+      ~load_pool_fields CALLDICT	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id _290 _291 _292 _293 _294 _295 _296 _297 _298 _299 _300
+      s10 POP	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+      21 s() PUSH
+      s3 PUSH
+      8 PUSHPOW2	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards staker_addr participants _153=256
+      DICTUGET
+      NULLSWAPIFNOT	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards _301 _302
+      NIP	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards entry_found
+      IFJMP:<{	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+        s11 s15 XCHG
+        15 BLKDROP
+        s4 POP
+        2DROP
+        s3 POP
+        s3 POP	//  query_id op addr_slice
+        4294967294 PUSHINT	//  query_id op addr_slice _155=4294967294
+        2SWAP
+        52 PUSHINT
+        0 PUSHINT
+        64 PUSHINT	//  addr_slice _155=4294967294 query_id op _156=52 _157=0 _158=64
+        send_message_back CALLDICT
+      }>	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+      NOW	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards _160
+      s8 PUSH	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards _160 end_time
+      GREATER	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards _161
+      IFJMP:<{	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+        s11 s15 XCHG
+        15 BLKDROP
+        s4 POP
+        2DROP
+        s3 POP
+        s3 POP	//  query_id op addr_slice
+        4294967294 PUSHINT	//  query_id op addr_slice _162=4294967294
+        2SWAP
+        47 PUSHINT
+        0 PUSHINT
+        64 PUSHINT	//  addr_slice _162=4294967294 query_id op _163=47 _164=0 _165=64
+        send_message_back CALLDICT
+      }>	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+      s3 PUSH
+      23 s() PUSH	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards stake_amount balance
+      NEQ	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards _167
+      IFJMP:<{	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+        s11 s15 XCHG
+        15 BLKDROP
+        s4 POP
+        2DROP
+        s3 POP
+        s3 POP	//  query_id op addr_slice
+        4294967294 PUSHINT	//  query_id op addr_slice _168=4294967294
+        2SWAP
+        50 PUSHINT
+        0 PUSHINT
+        64 PUSHINT	//  addr_slice _168=4294967294 query_id op _169=50 _170=0 _171=64
+        send_message_back CALLDICT
+      }>	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+      s5 s6 PUSH2	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards current_participant_count max_participants
+      GEQ	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards _173
+      IFJMP:<{	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+        s11 s15 XCHG
+        15 BLKDROP
+        s4 POP
+        2DROP
+        s3 POP
+        s3 POP	//  query_id op addr_slice
+        4294967294 PUSHINT	//  query_id op addr_slice _174=4294967294
+        2SWAP
+        51 PUSHINT
+        0 PUSHINT
+        64 PUSHINT	//  addr_slice _174=4294967294 query_id op _175=51 _176=0 _177=64
+        send_message_back CALLDICT
+      }>	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+      s11 POP
+      17 s() POP	//  balance entry_addr addr_slice entry_wc results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants
+      s0 17 s() XCHG
+      NEWC	//  balance entry_addr addr_slice participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount entry_wc _182
+      8 STI	//  balance entry_addr addr_slice participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount _184
+      SWAP
+      s0 18 s() XCHG	//  balance entry_addr stake_amount participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count pool_status _184 addr_slice
+      STSLICER	//  balance entry_addr stake_amount participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count pool_status _185
+      SWAP
+      s0 19 s() XCHG	//  pool_status entry_addr stake_amount participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count _185 balance
+      STGRAMS	//  pool_status entry_addr stake_amount participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count _186
+      s1 s(-1) PUXC	//  pool_status entry_addr stake_amount participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count current_participant_count _186
+      8 STU	//  pool_status entry_addr stake_amount participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time max_participants current_participant_count value
+      s0 s2 XCHG
+      s1 17 s() XCHG
+      s0 s15 XCHG
+      8 PUSHPOW2	//  pool_status current_participant_count stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time value entry_addr participants _190=256
+      DICTUSETB	//  pool_status current_participant_count stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time participants
+      s0 s15 XCHG	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time current_participant_count
+      INC	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time current_participant_count
+      s0 s5 PUSH2
+      32 PUSHINT	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time current_participant_count current_participant_count rewards _196=32
+      DICTUGET
+      NULLSWAPIFNOT	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time current_participant_count _303 _304
+      NIP	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time current_participant_count reward_found
+      IF:<{	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf _198 pool_id state start_time end_time current_participant_count
+      }>ELSE<{	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf rewards pool_id state start_time end_time current_participant_count
+        s5 POP	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf current_participant_count pool_id state start_time end_time
+        NEWDICT	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf current_participant_count pool_id state start_time end_time _198
+        s0 s5 XCHG	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf _198 pool_id state start_time end_time current_participant_count
+      }>
+      s0 s14 s5 PU2XC	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf current_participant_count pool_id state start_time end_time current_participant_count stake_amount _198
+      calculate_reward CALLDICT	//  pool_status participants stake_amount max_participants results pools stored_seqno random_locked pubkey owner ecvrf current_participant_count pool_id state start_time end_time rewards
+      s4 s10 XCHG
+      s9 s8 s0 XCHG3
+      s7 s13 XCHG
+      s5 s6 XCHG
+      s5 16 s() XCHG
+      s4 s14 XCHG
+      s3 s15 XCHG
+      s12 s0 s15 XCHG3	//  ecvrf pubkey stored_seqno owner random_locked pools pool_id start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards state
+      ~store_pool CALLDICT	//  ecvrf pubkey stored_seqno owner random_locked pools
+      s3 s5 XCHG
+      s1 s4 XCHG
+      s1 s3 XCHG	//  stored_seqno random_locked pubkey owner ecvrf pools
+      pack_state INLINECALLDICT	//  _203
+      c4 POP
+    }>	//  balance staker_addr addr_slice staker_wc op pools stored_seqno random_locked pubkey owner ecvrf query_id in_msg
+    s1 s7 XCHG
+    7 BLKDROP
+    s2 POP
+    s3 POP
+    s3 POP	//  query_id op addr_slice
+    OVER
+    31 PUSHPOW2	//  query_id op addr_slice op _207
+    AND	//  query_id op addr_slice _208
+    IFNOTJMP:<{	//  query_id op addr_slice
+      28 PUSHPOW2DEC	//  query_id op addr_slice _209=268435455
+      0 PUSHINT	//  query_id op addr_slice _209=268435455 _210=0
+      DUP	//  query_id op addr_slice _209=268435455 _210=0 _211=0
+      s3 s5 XCHG
+      s2 s4 XCHG
+      64 PUSHINT	//  addr_slice _209=268435455 query_id op _210=0 _211=0 _212=64
+      send_message_back CALLDICT
+    }>	//  query_id op addr_slice
+    3 BLKDROP	// 
+  }>
+  recv_external PROC:<{
+    //  in_msg
+    9 PUSHPOW2	//  in_msg _3=512
+    LDSLICEX	//  signature in_msg
+    32 LDU	//  signature _7 in_msg
+    32 LDU	//  signature msg_seqno op in_msg
+    COMMIT
+    ACCEPT
+    unpack_state CALLDICT	//  signature msg_seqno op in_msg stored_seqno random_locked pubkey owner ecvrf pools
+    s8 s5 XCPU	//  signature pools op in_msg stored_seqno random_locked pubkey owner ecvrf msg_seqno stored_seqno
+    EQUAL	//  signature pools op in_msg stored_seqno random_locked pubkey owner ecvrf _23
+    33 THROWIFNOT
+    s0 s4 XCHG	//  signature pools op in_msg ecvrf random_locked pubkey owner stored_seqno
+    INC	//  signature pools op in_msg ecvrf random_locked pubkey owner stored_seqno
+    s5 PUSH	//  signature pools op in_msg ecvrf random_locked pubkey owner stored_seqno in_msg
+    HASHSU	//  signature pools op in_msg ecvrf random_locked pubkey owner stored_seqno _28
+    s0 s9 s3 XC2PU	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner _28 signature pubkey
+    CHKSIGNU	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner verify
+    34 THROWIFNOT
+    s5 PUSH	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner op
+    31 EQINT	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner _33
+    IF:<{	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner
+      s5 POP	//  stored_seqno pools owner in_msg ecvrf random_locked pubkey
+      s0 s3 XCHG	//  stored_seqno pools owner pubkey ecvrf random_locked in_msg
+      32 LDU	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id in_msg
+      LDREF	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id _174 _173
+      DROP	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id pool_data
+      s1 s6 PUSH2
+      32 PUSHINT	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id pool_data pool_id pools _43=32
+      DICTUGET
+      NULLSWAPIFNOT	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id pool_data _175 _176
+      NIP	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id pool_data pool_found
+      44 THROWIF
+      CTOS	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id _48
+      s0 s1 s6 XCHG3
+      32 PUSHINT	//  stored_seqno random_locked owner pubkey ecvrf _48 pool_id pools _49=32
+      DICTUSET	//  stored_seqno random_locked owner pubkey ecvrf pools
+    }>ELSE<{	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner
+      s5 PUSH	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner op
+      101 EQINT	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner _52
+      IF:<{	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner
+        s5 POP	//  stored_seqno pools owner in_msg ecvrf random_locked pubkey
+        SWAP	//  stored_seqno pools owner in_msg ecvrf pubkey random_locked
+        1 EQINT	//  stored_seqno pools owner in_msg ecvrf pubkey _54
+        IF:<{	//  stored_seqno pools owner in_msg ecvrf pubkey
+          40 THROW
+        }>	//  stored_seqno pools owner in_msg ecvrf pubkey
+        s0 s2 XCHG	//  stored_seqno pools owner pubkey ecvrf in_msg
+        32 LDU	//  stored_seqno pools owner pubkey ecvrf _178 _177
+        DROP	//  stored_seqno pools owner pubkey ecvrf pool_id
+        s0 s4 PUSH2
+        32 PUSHINT	//  stored_seqno pools owner pubkey ecvrf pool_id pool_id pools _63=32
+        DICTUGET
+        NULLSWAPIFNOT	//  stored_seqno pools owner pubkey ecvrf pool_id pool pool_found
+        36 THROWIFNOT
+        ~load_pool_fields CALLDICT	//  stored_seqno pools owner pubkey ecvrf pool_id _191 _192 _193 _194 _195 _196 _197 _198 _199 _200 _201
+        s10 POP	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+        s0 s4 XCHG	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results pool_status
+        0 NEQINT	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _81
+        47 THROWIF
+        2873903193 PUSHINT	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193
+        0 PUSHINT	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _84=0
+        24 PUSHINT	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _84=0 _85=24
+        NEWC	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _84=0 _85=24 _86
+        6 STU	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _84=0 _88
+        s13 PUSH	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _84=0 _88 ecvrf
+        STSLICER	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _84=0 _89
+        610000 PUSHINT	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _84=0 _89 _90=610000
+        STGRAMS	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _84=0 _91
+        107 STU	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _83=2873903193 _105
+        32 STU	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _107
+        MYADDR	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _107 _108
+        STSLICER	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _109
+        ENDC	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _110
+        1 PUSHINT	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results _110 _111=1
+        SENDRAWMSG
+        1 PUSHINT	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results random_locked=1
+        DUP	//  stored_seqno pools owner pubkey ecvrf pool_id state start_time end_time max_participants current_participant_count rewards stake_amount participants results random_locked=1 pool_status=1
+        s11 s15 XCHG
+        s10 s15 XCHG
+        s5 s5 XCHG2
+        s0 s15 XCHG	//  stored_seqno random_locked=1 owner pubkey ecvrf pools pool_id start_time end_time max_participants current_participant_count pool_status=1 stake_amount participants results rewards state
+        ~store_pool CALLDICT	//  stored_seqno random_locked=1 owner pubkey ecvrf pools
+      }>ELSE<{	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner
+        s5 PUSH	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner op
+        32 EQINT	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner _118
+        IF:<{	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner
+          s5 POP	//  stored_seqno pools owner in_msg ecvrf random_locked pubkey
+          s0 s3 XCHG	//  stored_seqno pools owner pubkey ecvrf random_locked in_msg
+          32 LDU	//  stored_seqno pools owner pubkey ecvrf random_locked _203 _202
+          DROP	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id
+          s0 s5 PUSH2
+          32 PUSHINT	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id pool_id pools _125=32
+          DICTUGET
+          NULLSWAPIFNOT	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id pool pool_found
+          36 THROWIFNOT
+          ~load_pool_fields CALLDICT	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id _216 _217 _218 _219 _220 _221 _222 _223 _224 _225 _226
+          s3 s10 XCHG
+          10 BLKDROP	//  stored_seqno pools owner pubkey ecvrf random_locked pool_id participants
+          return_deposits CALLDICT
+          s0 s5 XCHG2
+          32 PUSHINT	//  stored_seqno random_locked owner pubkey ecvrf pool_id pools _143=32
+          DICTUDELGET
+          NULLSWAPIFNOT	//  stored_seqno random_locked owner pubkey ecvrf _229 _230 _231
+          2DROP	//  stored_seqno random_locked owner pubkey ecvrf pools
+        }>ELSE<{	//  stored_seqno pools op in_msg ecvrf random_locked pubkey owner
+          s0 s5 XCHG	//  stored_seqno pools owner in_msg ecvrf random_locked pubkey op
+          41 EQINT	//  stored_seqno pools owner in_msg ecvrf random_locked pubkey _146
+          IF:<{	//  stored_seqno pools owner in_msg ecvrf random_locked pubkey
+            s0 s3 XCHG	//  stored_seqno pools owner pubkey ecvrf random_locked in_msg
+            LDREF	//  stored_seqno pools owner pubkey ecvrf random_locked code in_msg
+            OVER	//  stored_seqno pools owner pubkey ecvrf random_locked code in_msg code
+            SETCODE
+            SEMPTY	//  stored_seqno pools owner pubkey ecvrf random_locked code _151
+            IFNOT:<{	//  stored_seqno pools owner pubkey ecvrf random_locked code
+              CTOS	//  stored_seqno pools owner pubkey ecvrf random_locked _152
+              BLESS	//  stored_seqno pools owner pubkey ecvrf random_locked _153
+              c3 POP
+            }>ELSE<{
+              DROP	//  stored_seqno pools owner pubkey ecvrf random_locked
+            }>
+            0 THROW
+          }>ELSE<{
+            s3 POP	//  stored_seqno pools owner pubkey ecvrf random_locked
+          }>
+          s0 s4 XCHG	//  stored_seqno random_locked owner pubkey ecvrf pools
+        }>
+      }>
+    }>
+    s2 s3 XCHG	//  stored_seqno random_locked pubkey owner ecvrf pools
+    pack_state INLINECALLDICT	//  _157
+    c4 POP
+  }>
+  get_pools PROC:<{
+    // 
+    c4 PUSH	//  _1
+    CTOS	//  _2
+    289 PUSHINT	//  _2 _7
+    SDSKIPFIRST	//  ds
+    LDREF	//  _41 _40
+    NIP	//  ds
+    LDDICT	//  _43 _42
+    DROP	//  pools
+    DUP	//  pools pools
+    ISNULL	//  pools _14
+    IFJMP:<{	//  pools
+      DROP	// 
+      PUSHNULL	//  _15
+    }>	//  pools
+    PUSHNULL	//  pools l
+    31 PUSHPOW2DEC	//  pools l id=2147483647
+    UNTIL:<{
+      s2 PUSH
+      32 PUSHINT	//  pools l id pools _23=32
+      DICTUGETPREV
+      NULLSWAPIFNOT2	//  pools l pool id f
+      DUP	//  pools l pool id f f
+      IF:<{	//  pools l pool id f
+        s0 s2 XCHG	//  pools l f id pool
+        ~load_pool_fields CALLDICT	//  pools l f id _57 _58 _59 _60 _61 _62 _63 _64 _65 _66 _67
+        s10 POP	//  pools l f id state start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards
+        s10 PUSH
+        s0 s10 XCHG	//  pools l f id id start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards state
+        11 TUPLE	//  pools l f id _37
+        s0 s3 XCHG2	//  pools id f _37 l
+        CONS	//  pools id f l
+        s0 s2 XCHG	//  pools l f id
+      }>ELSE<{
+        s2 POP	//  pools l f id
+      }>
+      SWAP	//  pools l id f
+      NOT	//  pools l id _39
+    }>	//  pools l id
+    DROP
+    NIP	//  l
+  }>
+  get_rewards PROC:<{
+    //  pool_id key
+    c4 PUSH	//  pool_id key _3
+    CTOS	//  pool_id key _4
+    289 PUSHINT	//  pool_id key _4 _9
+    SDSKIPFIRST	//  pool_id key ds
+    LDREF	//  pool_id key _42 _41
+    NIP	//  pool_id key ds
+    LDDICT	//  pool_id key _44 _43
+    DROP	//  pool_id key pools
+    DUP	//  pool_id key pools pools
+    ISNULL	//  pool_id key pools _17
+    36 THROWIF
+    s1 s2 XCHG
+    32 PUSHINT	//  key pool_id pools _21=32
+    DICTUGET
+    NULLSWAPIFNOT	//  key pool pool_found
+    36 THROWIFNOT
+    ~load_pool_fields CALLDICT	//  key _57 _58 _59 _60 _61 _62 _63 _64 _65 _66 _67
+    s1 s10 XCHG
+    10 BLKDROP	//  key rewards
+    32 PUSHINT	//  key rewards _39=32
+    DICTUGET
+    NULLSWAPIFNOT	//  _68 _69
+    DROP	//  reward
+  }>
+  get_participants PROC:<{
+    //  pool_id
+    c4 PUSH	//  pool_id _2
+    CTOS	//  pool_id _3
+    289 PUSHINT	//  pool_id _3 _8
+    SDSKIPFIRST	//  pool_id ds
+    LDREF	//  pool_id _61 _60
+    NIP	//  pool_id ds
+    LDDICT	//  pool_id _63 _62
+    DROP	//  pool_id pools
+    DUP	//  pool_id pools pools
+    ISNULL	//  pool_id pools _15
+    IFJMP:<{	//  pool_id pools
+      2DROP	// 
+      PUSHNULL	//  _16
+    }>	//  pool_id pools
+    32 PUSHINT	//  pool_id pools _19=32
+    DICTUGET
+    NULLSWAPIFNOT	//  pool pool_found
+    36 THROWIFNOT
+    ~load_pool_fields CALLDICT	//  _76 _77 _78 _79 _80 _81 _82 _83 _84 _85 _86
+    s3 s10 XCHG
+    10 BLKDROP	//  participants
+    PUSHNULL	//  participants l
+    256 PUSHPOW2DEC	//  participants l staker_addr
+    UNTIL:<{
+      s2 PUSH
+      8 PUSHPOW2	//  participants l staker_addr participants _49=256
+      DICTUGETPREV
+      NULLSWAPIFNOT2	//  participants l entry staker_addr f
+      DUP	//  participants l entry staker_addr f f
+      IF:<{	//  participants l entry staker_addr f
+        s0 s2 XCHG	//  participants l f staker_addr entry
+        ~load_participant CALLDICT	//  participants l f staker_addr _94 _95 _96 _97 _98
+        DROP
+        1 3 BLKDROP2	//  participants l f staker_addr entry_wc entry_addr stake_amount
+        3 TUPLE	//  participants l f staker_addr _57
+        s0 s3 XCHG2	//  participants staker_addr f _57 l
+        CONS	//  participants staker_addr f l
+        s0 s2 XCHG	//  participants l f staker_addr
+      }>ELSE<{
+        s2 POP	//  participants l f staker_addr
+      }>
+      SWAP	//  participants l staker_addr f
+      NOT	//  participants l staker_addr _59
+    }>	//  participants l staker_addr
+    DROP
+    NIP	//  l
+  }>
+}END>s constant code
+
+0 tuple 0x076ef1ea , // magic
+0 , 0 , // actions msg_sents
+1570998536 , // unix_time
+1 , 1 , 3 , // block_lt, trans_lt, rand_seed
+0 tuple 10000000000000 , dictnew , , // remaining balance
+0 , dictnew , // contract_address, global_config
+1 tuple // wrap to another tuple
+constant c7
+
+true constant bounce
+
+0 constant recv_internal // to run recv_internal() 
+-1 constant recv_external // to invoke recv_external()
+
+// storage
+variable storage
+<b b> storage !
+
+variable exit_code
+
+// Test 0 ----> Check owner's signature. Test must send correct seqno and correct signature expect 0.
+variable owner_private_key
+variable owner_public_key
+variable pools
+
+"./keys/owner.pk" file>B owner_private_key !
+owner_private_key @ priv>pub owner_public_key !
+dictnew pools !
+
+// parse addr from string to slice
+{ <b swap parse-smc-addr drop Addr, b> <s } : $>Addr>s
+
+"EQCLk1384-rYMhauBsAT36YABMN5yOTNbgM29THdANTW4-qK" $>Addr>s =: owner
+"EQC6DknYHlCJLOYw27VZ3OpAKVQ-vZBT8e6de6mgO-PCRh_S" $>Addr>s =: ecvrf
+
+<b owner s, ecvrf s, b> =: addresses
+
+<b 10 32 u, 0 1 u, owner_public_key @ B, addresses ref, pools @ dict, b> storage !
+
+variable message_to_sign
+variable message_to_send
+variable signature
+<b 120 32 u, b> message_to_sign !
+message_to_sign @ hashu owner_private_key @ ed25519_sign_uint signature !
+<b signature @ B, 10 32 u, 1 32 u, 120 32 u, b> <s message_to_send !
+
+message_to_send @
+recv_external
+code
+storage @
+c7
+runvmctx
+storage !
+exit_code !
+."Exit code " exit_code @ . cr
+
+// Test 1 ----> Check owner's signature. Test must send correct seqno and operation code with invalid signature expect 34.
+<b 10 32 u, 0 1 u, owner_public_key @ B, addresses ref, pools @ dict, b> storage !
+
+<b 121 32 u, b> message_to_sign !
+
+variable not_owner_key
+"./keys/notowner.pk" file>B not_owner_key !
+
+message_to_sign @ hashu not_owner_key @ ed25519_sign_uint signature !
+<b signature @ B, 10 32 u, 1 32 u, 121 32 u, b> <s message_to_send !
+
+message_to_send @
+recv_external
+code
+storage @
+c7
+runvmctx
+
+storage !
+exit_code !
+."Exit code " exit_code @ . cr
+
+exit_code @ 34 - abort"Test 1 failed"
