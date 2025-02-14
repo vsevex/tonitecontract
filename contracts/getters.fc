@@ -8,7 +8,8 @@
     Version: 0.0.1
 -}
 
-#include "imports/stdlib.fc";
+#include "./helpers.fc";
+;; #include "./imports/stdlib.fc";
 
 ;; Returns current sequence number
 int get_seqno() method_id {
@@ -19,4 +20,9 @@ int get_seqno() method_id {
 int get_owner_pubkey() method_id {
     slice ds = get_data().begin_parse().skip_bits(32);
     return ds~load_uint(32);
+}
+
+;; Returns contract's balance
+int balance() method_id {
+    return my_tons();
 }
