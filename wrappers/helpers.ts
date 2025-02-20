@@ -1,80 +1,50 @@
-import { Address, Cell, Tuple, TupleItem, TupleItemCell, TupleItemInt } from '@ton/core';
+import { Address, Cell } from '@ton/core';
 
-// Helper function to parse the list of pools
-export function parsePoolsList(tuples: TupleItem[]): PoolTuple[] {
-    const pools: PoolTuple[] = [];
-
-    if (tuples.length === 0) return [];
-    for (let i = 0; i < tuples.length; i++) {
-        const tuple = tuples[i] as Tuple;
-        const items = tuple.items;
-
-        const poolId = (items[0] as TupleItemInt).value;
-        const startTime = (items[1] as TupleItemInt).value;
-        const endTime = (items[2] as TupleItemInt).value;
-        const maxParticipants = (items[3] as TupleItemInt).value;
-        const currentParticipantCount = (items[4] as TupleItemInt).value;
-        const poolStatus = (items[5] as TupleItemInt).value;
-        const stakeAmount = (items[6] as TupleItemInt).value;
-        const participants = (items[7] as TupleItemCell).cell;
-        const results = (items[8] as TupleItemCell).cell;
-        const rewards = (items[9] as TupleItemCell).cell;
-        const state = (items[10] as TupleItemCell).cell;
-
-        pools.push({
-            poolId,
-            startTime,
-            endTime,
-            maxParticipants,
-            currentParticipantCount,
-            poolStatus,
-            stakeAmount,
-            participants,
-            results,
-            rewards,
-            state,
-        });
-    }
-
-    return pools;
+/**
+ * Represents a tuple containing information about a pool.
+ *
+ * @interface PoolTuple
+ *
+ * @property {bigint} poolId - The unique identifier for the pool.
+ * @property {bigint} startTime - The start time of the pool.
+ * @property {bigint} endTime - The end time of the pool.
+ * @property {bigint} maxParticipants - The maximum number of participants allowed in the pool.
+ * @property {bigint} currentParticipantCount - The current number of participants in the pool.
+ * @property {bigint} stakeAmount - The amount of stake required to participate in the pool.
+ * @property {Cell | null} [participants] - Optional. The participants in the pool, represented as a Cell or null.
+ * @property {Cell | null} [rewards] - Optional. The rewards for the pool, represented as a Cell or null.
+ */
+export class PoolTuple {
+    constructor(
+        public poolId: bigint,
+        public startTime: bigint,
+        public endTime: bigint,
+        public maxParticipants: bigint,
+        public currentParticipantCount: bigint,
+        public poolStatus: bigint,
+        public stakeAmount: bigint,
+        public participants?: Cell | null,
+        public results?: Cell | null,
+        public rewards?: Cell | null,
+    ) {}
 }
 
-// Helper function to parse the list of participants
-export function parseParticipantsList(tuples: TupleItem[]): ParticipantTuple[] {
-    const participants: ParticipantTuple[] = [];
-    if (tuples.length === 0) return [];
-
-    for (let i = 0; i < tuples.length; i++) {
-        const tuple = tuples[i] as Tuple;
-        const items = tuple.items;
-
-        const entryWc = (items[0] as TupleItemInt).value;
-        const staker = (items[1] as TupleItemCell).cell.beginParse().loadAddress();
-        const stakeAmount = (items[2] as TupleItemInt).value;
-
-        participants.push({
-            entryWc,
-            staker,
-            stakeAmount,
-        });
-    }
-
-    return participants;
+export class ParticipantTuple {
+    constructor(
+        public entryWc: bigint,
+        public staker: Address,
+        public stakeAmount: bigint,
+    ) {}
 }
-
-// Type definitions
 export interface PoolTuple {
     poolId: bigint;
     startTime: bigint;
     endTime: bigint;
     maxParticipants: bigint;
     currentParticipantCount: bigint;
-    poolStatus: bigint;
     stakeAmount: bigint;
-    participants: Cell;
-    results: Cell;
-    rewards: Cell;
-    state: Cell;
+    participants?: Cell | null;
+    rewards?: Cell | null;
 }
 
 export interface ParticipantTuple {
