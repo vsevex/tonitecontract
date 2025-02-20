@@ -1,7 +1,7 @@
 import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { CoordinatorUnit } from '../wrappers/Coordinator';
 import { randomTestKey } from '@ton/ton/dist/utils/randomTestKey';
-import { Address, beginCell, toNano } from '@ton/core';
+import { Address, toNano } from '@ton/core';
 import { randomAddress } from '@ton/test-utils';
 
 describe('Coordinator test cases', () => {
