@@ -4,11 +4,21 @@
     "scripts": {
         "start": "blueprint run",
         "build": "blueprint build",
-        "test": "jest --verbose"
+        "test": "jest --verbose",
+        "deploy": "ts-node --files scripts/deploy.ts",
+        "deposit": "ts-node --files scripts/deposit.ts",
+        "createpool": "ts-node --files scripts/createPool.ts",
+        "getpool": "ts-node --files scripts/getPool.ts",
+        "joinpool": "ts-node --files scripts/joinPool.ts",
+        "cancelpool": "ts-node --files scripts/cancelPool.ts",
+        "getparticipant": "ts-node --files scripts/getParticipant.ts",
+        "closepool": "ts-node --files scripts/closePool.ts",
+        "withdraw": "ts-node --files scripts/withdraw.ts",
+        "updatecode": "ts-node --files scripts/updateCode.ts"
     },
     "devDependencies": {
+        "@orbs-network/ton-access": "^2.3.3",
         "@tact-lang/compiler": "^1.5.3",
-        "@ton-community/func-js": "^0.9.0",
         "@ton/blueprint": "^0.28.0",
         "@ton/core": "~0",
         "@ton/crypto": "^3.3.0",
@@ -23,5 +33,8 @@
         "ts-jest": "^29.2.5",
         "ts-node": "^10.9.2",
         "typescript": "^5.7.3"
+    },
+    "dependencies": {
+        "dotenv": "^16.4.7"
     }
 }
