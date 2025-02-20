@@ -13,12 +13,12 @@ import {
     Slice,
     TupleItemSlice,
 } from '@ton/core';
-import { parseParticipantsList, parsePoolsList, ParticipantTuple, PoolTuple } from './helpers';
+import { ParticipantTuple, PoolTuple } from './helpers';
 import { KeyPair, sign } from '@ton/crypto';
 
 export type ToniteConfig = {
     seqno?: number;
-    ownerKey: KeyPair;
+    ownerKeyPair: KeyPair;
     owner: Slice;
     ecvrf: Slice;
 };
@@ -26,12 +26,12 @@ export type ToniteConfig = {
 let ownerKey: KeyPair;
 
 export function poolConfigToCell(config: ToniteConfig): Cell {
-    ownerKey = config.ownerKey;
+    ownerKey = config.ownerKeyPair;
 
     return beginCell()
         .storeUint(config.seqno || 12, 32) // seq_no
         .storeUint(0, 1)
-        .storeBuffer(config.ownerKey.publicKey, 32)
+        .storeBuffer(config.ownerKeyPair.publicKey, 32)
         .storeDict(Dictionary.empty())
         .storeRef(beginCell().storeSlice(config.owner).storeSlice(config.ecvrf).endCell()) // owner && ecvrf
         .endCell();
@@ -61,13 +61,12 @@ export class Tonite implements Contract {
             .storeDict(Dictionary.empty())
             .storeDict(Dictionary.empty())
             .storeDict(Dictionary.empty())
-            .storeDict(Dictionary.empty())
             .endCell();
     }
 
     // Send a message to update the contract code
     static updatePoolMessage(newCode: Cell): Cell {
-        return beginCell().storeUint(0x29, 32).storeRef(newCode).endCell();
+        return beginCell().storeUint(0x2a, 32).storeRef(newCode).endCell();
     }
 
     async sendDeploy(provider: ContractProvider, via: Sender, value: bigint): Promise<void> {
@@ -85,6 +84,7 @@ export class Tonite implements Contract {
             seqno: number;
             poolId: number;
             body: Cell;
+            secretKey?: Buffer<ArrayBufferLike> | undefined;
         },
     ): Promise<void> {
         return provider.external(
@@ -92,11 +92,12 @@ export class Tonite implements Contract {
                 .storeBuffer(
                     sign(
                         beginCell().storeUint(opts.poolId, 32).storeRef(opts.body).endCell().hash(),
-                        ownerKey.secretKey,
+                        opts.secretKey ?? ownerKey.secretKey,
                     ),
                     64,
                 )
                 .storeUint(opts.seqno, 32)
+                .storeUint(Math.floor(Date.now() / 1000) + 3, 32)
                 .storeUint(0x1f, 32)
                 .storeUint(opts.poolId, 32)
                 .storeRef(opts.body)
@@ -108,12 +109,14 @@ export class Tonite implements Contract {
         provider: ContractProvider,
         opts: {
             seqno: number;
+            secretKey?: Buffer<ArrayBufferLike> | undefined;
         },
     ): Promise<void> {
         return provider.external(
             beginCell()
-                .storeBuffer(sign(beginCell().endCell().hash(), ownerKey.secretKey), 64)
+                .storeBuffer(sign(beginCell().endCell().hash(), opts.secretKey ?? ownerKey.secretKey), 64)
                 .storeUint(opts.seqno, 32)
+                .storeUint(Math.floor(Date.now() / 1000) + 3, 32)
                 .storeUint(0x7, 32)
                 .endCell(),
         );
@@ -142,20 +145,27 @@ export class Tonite implements Contract {
     }
 
     // Send a transaction to cancel a pool
-    async sendCancelPool(provider: ContractProvider, poolId: number, opts: { seqno: number }): Promise<void> {
+    async sendCancelPool(
+        provider: ContractProvider,
+        opts: { seqno: number; poolId: number; secretKey?: Buffer<ArrayBufferLike> | undefined },
+    ): Promise<void> {
         return provider.external(
             beginCell()
-                .storeBuffer(sign(beginCell().storeUint(poolId, 32).endCell().hash(), ownerKey.secretKey), 64)
+                .storeBuffer(
+                    sign(beginCell().storeUint(opts.poolId, 32).endCell().hash(), opts.secretKey ?? ownerKey.secretKey),
+                    64,
+                )
                 .storeUint(opts.seqno, 32)
+                .storeUint(Math.floor(Date.now() / 1000) + 3, 32)
                 .storeUint(0x20, 32)
-                .storeUint(poolId, 32)
+                .storeUint(opts.poolId, 32)
                 .endCell(),
         );
     }
 
     // Send a transaction to update the contract code
     async sendUpdatePool(sender: Sender, provider: ContractProvider, newCode: Cell, value: bigint = toNano('0.1')) {
-        await provider.internal(sender, { value: value, body: Tonite.updatePoolMessage(newCode) });
+        return provider.internal(sender, { value: value, body: Tonite.updatePoolMessage(newCode) });
     }
 
     // Gets the owner's public key
@@ -164,31 +174,81 @@ export class Tonite implements Contract {
         return result.readBigNumber().toString(16);
     }
 
-    // Gets the list of active pools
-    async getActivePools(provider: ContractProvider): Promise<PoolTuple[]> {
-        const result = (await provider.get('get_pools', [])).stack;
-        return parsePoolsList(result.readLispList());
+    async getPoolWithId(provider: ContractProvider, poolId: number): Promise<PoolTuple> {
+        const args = new TupleBuilder();
+        args.writeNumber(poolId);
+        const result = (await provider.get('get_pool', args.build())).stack;
+
+        const startTime = result.readBigNumber();
+        const endTime = result.readBigNumber();
+        const maxParticipants = result.readBigNumber();
+        const currentParticipantCount = result.readBigNumber();
+        const stakeAmount = result.readBigNumber();
+        const poolStatus = result.readBigNumber();
+        const participants = result.readCellOpt();
+        const results = result.readCellOpt();
+        const rewards = result.readCellOpt();
+
+        return new PoolTuple(
+            BigInt(poolId),
+            startTime,
+            endTime,
+            maxParticipants,
+            currentParticipantCount,
+            stakeAmount,
+            poolStatus,
+            participants,
+            results,
+            rewards,
+        );
     }
 
-    async getSeqNo(provider: ContractProvider): Promise<number> {
-        const result = (await provider.get('get_seqno', [])).stack;
+    async getSeqno(provider: ContractProvider): Promise<number> {
+        const result = (await provider.get('seqno', [])).stack;
         return result.readNumber();
     }
 
-    async getRewards(provider: ContractProvider, poolId: number, key: number): Promise<Slice> {
+    async getRewardWithKey(provider: ContractProvider, opts: { poolId: number; key: number }): Promise<Slice> {
         const args = new TupleBuilder();
-        args.writeNumber(poolId);
-        args.writeNumber(key);
-        const result = (await provider.get('get_rewards', args.build())).stack;
+        args.writeNumber(opts.poolId);
+        args.writeNumber(opts.key);
+        const result = (await provider.get('get_reward', args.build())).stack;
         return (result.peek() as TupleItemSlice).cell.asSlice();
     }
 
-    // Gets the list of participants in a pool
-    async getPoolParticipants(provider: ContractProvider, poolId: number): Promise<ParticipantTuple[]> {
+    async getParticipantWithAddr(
+        provider: ContractProvider,
+        opts: { poolId: number; stakerAddr?: Address },
+    ): Promise<ParticipantTuple> {
         const args = new TupleBuilder();
-        args.writeNumber(poolId);
-        const result = await provider.get('get_participants', args.build());
-        return parseParticipantsList(result.stack.readLispList());
+        args.writeNumber(opts.poolId);
+        args.writeAddress(opts.stakerAddr);
+        const result = (await provider.get('get_participant_with_addr', args.build())).stack;
+        const participant = (result.peek() as TupleItemSlice).cell.beginParse();
+
+        return new ParticipantTuple(
+            BigInt(participant.loadUint(8)),
+            participant.loadAddress(),
+            BigInt(participant.loadCoins()),
+        );
+    }
+
+    async sendClosePool(
+        provider: ContractProvider,
+        opts: { seqno: number; poolId: number; secretKey?: Buffer<ArrayBufferLike> | undefined },
+    ): Promise<void> {
+        return provider.external(
+            beginCell()
+                .storeBuffer(
+                    sign(beginCell().storeUint(opts.poolId, 32).endCell().hash(), opts.secretKey ?? ownerKey.secretKey),
+                    64,
+                )
+                .storeUint(opts.seqno, 32)
+                .storeUint(Math.floor(Date.now() / 1000) + 3, 32)
+                .storeUint(0x65, 32)
+                .storeUint(opts.poolId, 32)
+                .endCell(),
+        );
     }
 
     async sendSimple(
@@ -221,19 +281,26 @@ export class Tonite implements Contract {
         });
     }
 
-    async sendClosePool(provider: ContractProvider, opts: { seqno: number; poolId: number }): Promise<void> {
-        return provider.external(
-            beginCell()
-                .storeBuffer(sign(beginCell().storeUint(opts.poolId, 32).endCell().hash(), ownerKey.secretKey), 64)
-                .storeUint(opts.seqno, 32)
-                .storeUint(0x65, 32)
-                .storeUint(opts.poolId, 32)
-                .endCell(),
-        );
-    }
-
     async getBalance(provider: ContractProvider): Promise<number> {
         const result = await provider.get('balance', []);
         return result.stack.readNumber();
+    }
+
+    async sendUpdateCode(
+        provider: ContractProvider,
+        opts: { seqno: number; newCode: Cell; secretKey?: Buffer<ArrayBufferLike> | undefined },
+    ): Promise<void> {
+        return provider.external(
+            beginCell()
+                .storeBuffer(
+                    sign(beginCell().storeRef(opts.newCode).endCell().hash(), opts.secretKey ?? ownerKey.secretKey),
+                    64,
+                )
+                .storeUint(opts.seqno, 32)
+                .storeUint(Math.floor(Date.now() / 1000) + 3, 32)
+                .storeUint(0x2a, 32)
+                .storeRef(opts.newCode)
+                .endCell(),
+        );
     }
 }
