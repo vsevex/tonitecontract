@@ -37,8 +37,8 @@ int my_tons() asm "BALANCE" "FIRST";
     return ();
 }
 
-tuple pool_tuple(int pool_id, int start_time, int end_time, int max_participants, int current_participant_count, int pool_status, int stake_amount, cell participants, cell results, cell rewards, cell state) 
-    asm(pool_id start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards state) "11 TUPLE";
+tuple pool_tuple(int pool_id, int start_time, int end_time, int max_participants, int current_participant_count, int pool_status, int stake_amount, cell participants, cell results, cell rewards) 
+    asm(pool_id start_time end_time max_participants current_participant_count pool_status stake_amount participants results rewards) "10 TUPLE";
 
 tuple participant_tuple(int entry_wc, slice entry_addr, int stake_amount) asm(entry_wc entry_addr stake_amount) "3 TUPLE";
 
