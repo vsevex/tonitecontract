@@ -9,17 +9,17 @@
 -}
 
 #include "./helpers.fc";
-;; #include "./imports/stdlib.fc";
+#include "./imports/stdlib.fc";
 
 ;; Returns current sequence number
-int get_seqno() method_id {
+int seqno() method_id {
     return get_data().begin_parse().preload_uint(32);
 }
 
 ;; Returns owner's pubkey
-int get_owner_pubkey() method_id {
+slice get_owner_pubkey() method_id {
     slice ds = get_data().begin_parse().skip_bits(32);
-    return ds~load_uint(32);
+    return begin_cell().store_uint(ds~load_uint(32), 32).end_cell().begin_parse();
 }
 
 ;; Returns contract's balance
