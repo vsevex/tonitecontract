@@ -13,8 +13,8 @@ const int OP_UNKNOWN     = 0;
 const int OP_JOIN_POOL   = 11;
 const int OP_CREATE_POOL = 31;
 const int OP_CANCEL_POOL = 32;
-const int OP_UPDATE_POOL = 41;
 const int OP_CLOSE_POOL  = 101;
+const int OP_UPDATE_CODE = 42;
 const int OP_WITHDRAW    = 7;
 
 ;; Helper constants
