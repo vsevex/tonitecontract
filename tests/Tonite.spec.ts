@@ -203,6 +203,41 @@ describe('Tonite', () => {
         expect(body?.loadUint(32)).toEqual(47);
     });
 
+    it('should return 53 when user attempts to join a not started pool', async () => {
+        const staker = await blockchain.treasury('staker', { workchain: 0 });
+        const queryId = Date.now();
+        const createResult = await tonite.sendCreatePool({
+            seqno: 12,
+            poolId: 121,
+            body: Tonite.createPoolMessage(410, 440, 100, toNano('1')),
+        });
+
+        expect(createResult.transactions).toHaveTransaction({
+            to: tonite.address,
+            success: true,
+        });
+
+        const joinResult = await tonite.sendJoinPool(staker.getSender(), toNano('1'), {
+            poolId: 121,
+            queryId: queryId,
+        });
+
+        const tx = joinResult.transactions[1];
+        expect(tx.outMessagesCount).toBe(1);
+        const outMessages = tx.outMessages;
+        expect(outMessages).toBeDefined();
+        const outMessage = outMessages.get(0);
+        const body = outMessages.get(0)?.body.beginParse();
+        expect(outMessage?.info.dest?.toString()).toEqual(staker.address.toString());
+        expect(outMessage?.info.type).toEqual('internal');
+        expect(outMessage?.info.src?.toString()).toEqual(tonite.address.toString());
+
+        expect(body?.loadUint(32)).toEqual(0xfffffffe);
+        expect(body?.loadUint(64)).toEqual(queryId);
+        expect(body?.loadUint(32)).toEqual(0xb);
+        expect(body?.loadUint(32)).toEqual(53);
+    });
+
     it('should return 50 when user attempts to join a pool which already joined', async () => {
         const staker = await blockchain.treasury('staker', { workchain: 0 });
         const createResult = await tonite.sendCreatePool({
@@ -412,6 +447,6 @@ describe('Tonite', () => {
         const newCode = await compile('Tonite');
         await tonite.sendUpdateCode({ seqno: 12, newCode: newCode });
 
-        const result = await tonite.sendCreatePool({ seqno: 13, poolId: 121, body: poolCell });
+        await tonite.sendCreatePool({ seqno: 13, poolId: 121, body: poolCell });
     });
 });
