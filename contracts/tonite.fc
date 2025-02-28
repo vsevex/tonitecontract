@@ -34,7 +34,8 @@
         40 - Random is locked, can not close another pool at the moment.
         44 - Duplicate. Pool with the given id already exists.
         47 - Pool is already closed.
-        52 - Pool is archived. This pool is no longer active.
+        52 - Participant is already joined to the pool.
+        53 - Pool is not started yet.
 -}
 
 ;; Function to pack the state
@@ -72,7 +73,7 @@ _ pack_state(int seqno, int random_locked, int pubkey, slice owner, slice ecvrf,
         .store_uint(end_time, 32) ;; assigned by the creator, can be modified
         .store_uint(max_participants, 32) ;; protected, assigned by the owner
         .store_uint(current_participant_count, 32) ;; will be modified on each pool join
-        .store_uint(pool_status, 1) ;; 0 - active, 1 - closed, 2 - archived
+        .store_uint(pool_status, 1) ;; 0 - active, 1 - closed
         .store_grams(stake_amount) ;; protected, assigned at the pool creation
         .store_dict(participants) ;; list of participants, will be updated on each pool join
         .store_dict(results) ;; list of winners, will be updated on pool closure
@@ -260,6 +261,9 @@ int sum_range(int n) inline {
 
         if (entry_found) {
             return send_message_back(addr_slice, 0xfffffffe, query_id, op, 52, 0, 64);
+        }
+        if (now() < start_time) {
+            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 53, 0, 64);
         }
         if (now() > end_time) { ;; Pool is closed
             return send_message_back(addr_slice, 0xfffffffe, query_id, op, 47, 0, 64);
