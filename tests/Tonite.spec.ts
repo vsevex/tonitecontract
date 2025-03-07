@@ -107,10 +107,8 @@ describe('Tonite', () => {
     });
 
     it('must return a message when trying to join a non-existing pool', async () => {
-        const queryId = Date.now();
         const result = await tonite.sendJoinPool(deployer.getSender(), toNano('0.01'), {
             poolId: 121,
-            queryId: queryId,
         });
 
         expect(result.transactions).toHaveTransaction({
@@ -124,7 +122,6 @@ describe('Tonite', () => {
         expect(outMessage).toBeDefined();
         expect(outMessage?.info.type).toEqual('internal');
         expect(body?.loadUint(32)).toEqual(0xb);
-        expect(body?.loadUint(64)).toEqual(queryId);
     });
 
     it('should throw an exception when trying to create with an existing pool id', async () => {
@@ -170,7 +167,6 @@ describe('Tonite', () => {
 
     it('should return 47 when user attempts to join a closed pool', async () => {
         const staker = await blockchain.treasury('staker', { workchain: 0 });
-        const queryId = Date.now();
         const createResult = await tonite.sendCreatePool({
             seqno: 12,
             poolId: 121,
@@ -184,7 +180,6 @@ describe('Tonite', () => {
 
         const joinResult = await tonite.sendJoinPool(staker.getSender(), toNano('1'), {
             poolId: 121,
-            queryId: queryId,
         });
 
         const tx = joinResult.transactions[1];
@@ -198,14 +193,13 @@ describe('Tonite', () => {
         expect(outMessage?.info.src?.toString()).toEqual(tonite.address.toString());
 
         expect(body?.loadUint(32)).toEqual(0xfffffffe);
-        expect(body?.loadUint(64)).toEqual(queryId);
+        expect(body?.loadUint(32)).toEqual(121);
         expect(body?.loadUint(32)).toEqual(0xb);
         expect(body?.loadUint(32)).toEqual(47);
     });
 
     it('should return 53 when user attempts to join a not started pool', async () => {
         const staker = await blockchain.treasury('staker', { workchain: 0 });
-        const queryId = Date.now();
         const createResult = await tonite.sendCreatePool({
             seqno: 12,
             poolId: 121,
@@ -219,7 +213,6 @@ describe('Tonite', () => {
 
         const joinResult = await tonite.sendJoinPool(staker.getSender(), toNano('1'), {
             poolId: 121,
-            queryId: queryId,
         });
 
         const tx = joinResult.transactions[1];
@@ -233,7 +226,7 @@ describe('Tonite', () => {
         expect(outMessage?.info.src?.toString()).toEqual(tonite.address.toString());
 
         expect(body?.loadUint(32)).toEqual(0xfffffffe);
-        expect(body?.loadUint(64)).toEqual(queryId);
+        expect(body?.loadUint(32)).toEqual(121);
         expect(body?.loadUint(32)).toEqual(0xb);
         expect(body?.loadUint(32)).toEqual(53);
     });
@@ -265,7 +258,7 @@ describe('Tonite', () => {
         expect(outMessage?.info.type).toEqual('internal');
         expect(outMessage?.info.src?.toString()).toEqual(tonite.address.toString());
         expect(body?.loadUint(32)).toEqual(0xfffffffe);
-        expect(body?.skip(64).loadUint(32)).toEqual(0xb);
+        expect(body?.skip(32).loadUint(32)).toEqual(0xb);
         expect(body?.loadUint(32)).toEqual(50);
     });
 
@@ -299,7 +292,7 @@ describe('Tonite', () => {
         expect(outMessage?.info.type).toEqual('internal');
         expect(outMessage?.info.src?.toString()).toEqual(tonite.address.toString());
         expect(body?.loadUint(32)).toEqual(0xfffffffe);
-        expect(body?.skip(64).loadUint(32)).toEqual(0xb);
+        expect(body?.skip(32).loadUint(32)).toEqual(0xb);
         expect(body?.loadUint(32)).toEqual(52);
     });
 
@@ -448,5 +441,14 @@ describe('Tonite', () => {
         await tonite.sendUpdateCode({ seqno: 12, newCode: newCode });
 
         await tonite.sendCreatePool({ seqno: 13, poolId: 121, body: poolCell });
+    });
+
+    it('should update contract code accordingly', async () => {
+        const result = await tonite.sendOp(owner.getSender(), toNano('0.1'), { op: 0xf });
+
+        const tx = result.transactions[1];
+        expect(tx.outMessagesCount).toBe(1);
+        const body = tx.outMessages.get(0)?.body.beginParse();
+        expect(body?.loadStringTail()).toEqual('Invalid request');
     });
 });
