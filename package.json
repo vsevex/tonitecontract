@@ -14,7 +14,8 @@
         "getparticipant": "ts-node --files scripts/getParticipant.ts",
         "closepool": "ts-node --files scripts/closePool.ts",
         "withdraw": "ts-node --files scripts/withdraw.ts",
-        "updatecode": "ts-node --files scripts/updateCode.ts"
+        "updatecode": "ts-node --files scripts/updateCode.ts",
+        "sendop": "ts-node --files scripts/sendOp.ts"
     },
     "devDependencies": {
         "@orbs-network/ton-access": "^2.3.3",
