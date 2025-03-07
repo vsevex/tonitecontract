@@ -99,10 +99,11 @@ _ pack_state(int seqno, int random_locked, int pubkey, slice owner, slice ecvrf,
     return (pool, fields);
 }
 
-(slice, (int, slice, int, int)) ~load_participant(slice participant) {
+(slice, (int, slice, int, int, int)) ~load_participant(slice participant) {
     var fields = (
         participant~load_int(8), ;; wc
         participant~load_msg_addr(), ;; address
+        participant~load_uint(32), ;; user_id
         participant~load_grams(), ;; stake_amount
         participant~load_uint(8) ;; reserved
     );
@@ -110,12 +111,14 @@ _ pack_state(int seqno, int random_locked, int pubkey, slice owner, slice ecvrf,
 }
 
 ;; Simple money transfer
-() send_money(int wc, slice address, int amount, int mode) impure {
+() send_money(int wc, slice address, int amount, slice comment, int mode) impure {
     return send_raw_message(begin_cell()
         .store_uint(0x18, 6)
         .store_slice(address)
         .store_coins(amount)
         .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_uint(0, 32)
+        .store_slice(comment)
         .end_cell(), mode
     );
 }
@@ -126,7 +129,7 @@ _ pack_state(int seqno, int random_locked, int pubkey, slice owner, slice ecvrf,
         (staker, slice entry, int f) = participants.udict_get_next?(256, staker);
         if (f) {
             (int staker_wc, slice staker_addr, int amount, int index) = entry~load_participant();
-            send_money(staker_wc, staker_addr, amount, 3);
+            send_money(staker_wc, staker_addr, amount, "TONite deposit return", 3);
         }
     } until (~ f);
 }
@@ -229,7 +232,7 @@ int sum_range(int n) inline {
                                     (slice reward, int reward_found) = rewards.udict_get?(32, counter + 1);
                                     int grams = reward~load_grams();
                                     results~udict_set_builder(32, counter, begin_cell().store_grams(grams).store_slice(staker_addr));
-                                    send_money(staker_wc, staker_addr, grams, 3);
+                                    send_money(staker_wc, staker_addr, grams, "TONite reward!", 3);
                                     counter += 1;
                                 }
                             }
@@ -246,33 +249,31 @@ int sum_range(int n) inline {
         return ();
     }
 
-    int query_id = in_msg~load_uint(64); ;; Load query ID from the message body
-
     if (op == OP_JOIN_POOL) {
         ;; Join to a pool
         int pool_id = in_msg~load_uint(32); ;; Load pool ID from the message body
         (slice pool, int pool_found) = pools.udict_get?(32, pool_id); ;; Get pool data from the dictionary
         ifnot (pool_found) {
-            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 36, 0, 64);
+            return send_message_back(addr_slice, 0xfffffffe, pool_id, op, 36, 0, 64);
         }
         
         (int start_time, int end_time, int max_participants, int current_participant_count, int pool_status, int stake_amount, cell participants, cell results, cell rewards) = pool~load_pool_fields();
         (slice entry, int entry_found) = participants.udict_get?(256, staker_addr); ;; Check if the staker is already in the pool
 
         if (entry_found) {
-            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 52, 0, 64);
+            return send_message_back(addr_slice, 0xfffffffe, pool_id, op, 52, 0, 64);
         }
         if (now() < start_time) {
-            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 53, 0, 64);
+            return send_message_back(addr_slice, 0xfffffffe, pool_id, op, 53, 0, 64);
         }
         if (now() > end_time) { ;; Pool is closed
-            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 47, 0, 64);
+            return send_message_back(addr_slice, 0xfffffffe, pool_id, op, 47, 0, 64);
         }
         if (stake_amount != balance) {
-            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 50, 0, 64); ;; insufficient balance
+            return send_message_back(addr_slice, 0xfffffffe, pool_id, op, 50, 0, 64); ;; insufficient balance
         }
         if (current_participant_count >= max_participants) {
-            return send_message_back(addr_slice, 0xfffffffe, query_id, op, 51, 0, 64);
+            return send_message_back(addr_slice, 0xfffffffe, pool_id, op, 51, 0, 64);
         }
         (int entry_wc, int entry_addr) = (staker_wc, staker_addr);
 
@@ -293,10 +294,7 @@ int sum_range(int n) inline {
         return ();
     }
 
-    ifnot(op & (1 << 31)) {
-        ;; unknown query, return error
-        return send_message_back(addr_slice, 0xfffffff, query_id, op, 0, 0, 64);
-    }
+    return send_money(addr_slice, "Invalid request", balance, 64);   
 }
 
 () recv_external(slice in_msg) impure {
@@ -369,7 +367,7 @@ int sum_range(int n) inline {
     } elseif (op == OP_WITHDRAW) {
         ;; Withdraw funds
         int amount = balance();
-        send_money(0, owner, amount, 128);
+        send_money(0, owner, amount, "TONite witdraw", 128);
     }
 
     ;; Update state with new seqno and modified pools
