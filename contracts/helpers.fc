@@ -17,7 +17,7 @@ int pow (int x) asm "POW2";
 int my_tons() asm "BALANCE" "FIRST";
 (int) math::mod (int x, int y) asm "MOD";
 
-() send_message_back(slice address, int ans_tag, int query_id, int body, int extra, int grams, int mode) impure {
+() send_message_back(slice address, int ans_tag, int pool_id, int body, int extra, int grams, int mode) impure {
     ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool src:MsgAddress -> 011000
     var msg = begin_cell()
         .store_uint(0x18, 6)
@@ -25,7 +25,7 @@ int my_tons() asm "BALANCE" "FIRST";
         .store_grams(grams)
         .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
         .store_uint(ans_tag, 32)
-        .store_uint(query_id, 64);
+        .store_uint(pool_id, 32);
     
     if (body >= 0 ) {
         msg~store_uint(body, 32);
