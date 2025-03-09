@@ -1,4 +1,4 @@
-import { Address, Cell } from '@ton/core';
+import { Address, Cell } from "@ton/core";
 
 /**
  * Represents a tuple containing information about a pool.
@@ -15,40 +15,40 @@ import { Address, Cell } from '@ton/core';
  * @property {Cell | null} [rewards] - Optional. The rewards for the pool, represented as a Cell or null.
  */
 export class PoolTuple {
-    constructor(
-        public poolId: bigint,
-        public startTime: bigint,
-        public endTime: bigint,
-        public maxParticipants: bigint,
-        public currentParticipantCount: bigint,
-        public poolStatus: bigint,
-        public stakeAmount: bigint,
-        public participants?: Cell | null,
-        public results?: Cell | null,
-        public rewards?: Cell | null,
-    ) {}
+  constructor(
+    public poolId: bigint,
+    public startTime: bigint,
+    public endTime: bigint,
+    public maxParticipants: bigint,
+    public currentParticipantCount: bigint,
+    public poolStatus: bigint,
+    public stakeAmount: bigint,
+    public participants?: Cell | null,
+    public results?: Cell | null,
+    public rewards?: Cell | null
+  ) {}
 }
 
 export class ParticipantTuple {
-    constructor(
-        public entryWc: bigint,
-        public staker: Address,
-        public stakeAmount: bigint,
-    ) {}
+  constructor(
+    public entryWc: bigint,
+    public staker: Address,
+    public stakeAmount: bigint
+  ) {}
 }
 export interface PoolTuple {
-    poolId: bigint;
-    startTime: bigint;
-    endTime: bigint;
-    maxParticipants: bigint;
-    currentParticipantCount: bigint;
-    stakeAmount: bigint;
-    participants?: Cell | null;
-    rewards?: Cell | null;
+  poolId: bigint;
+  startTime: bigint;
+  endTime: bigint;
+  maxParticipants: bigint;
+  currentParticipantCount: bigint;
+  stakeAmount: bigint;
+  participants?: Cell | null;
+  rewards?: Cell | null;
 }
 
 export interface ParticipantTuple {
-    entryWc: bigint;
-    staker: Address;
-    stakeAmount: bigint;
+  entryWc: bigint;
+  staker: Address;
+  stakeAmount: bigint;
 }
