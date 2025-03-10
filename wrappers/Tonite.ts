@@ -127,16 +127,12 @@ export class Tonite implements Contract {
         provider: ContractProvider,
         via: Sender,
         value: bigint = toNano('1'),
-        opts: { poolId: number; queryId?: number | undefined },
+        opts: { poolId: number },
     ): Promise<void> {
         return provider.internal(via, {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-                .storeUint(0xb, 32)
-                .storeUint(opts.queryId || Date.now(), 64)
-                .storeUint(opts.poolId, 32)
-                .endCell(),
+            body: beginCell().storeUint(0xb, 32).storeUint(opts.poolId, 32).endCell(),
         });
     }
 
@@ -263,8 +259,8 @@ export class Tonite implements Contract {
         });
     }
 
-    async sendOp(provider: ContractProvider, via: Sender, opts: { value: bigint; op: number }) {
-        return provider.internal(via, { value: opts.value, body: beginCell().storeUint(opts.op, 32).endCell() });
+    async sendOp(provider: ContractProvider, via: Sender, value: bigint, opts: { op: number }) {
+        return provider.internal(via, { value: value, body: beginCell().storeUint(opts.op, 32).endCell() });
     }
 
     // Sends a random number on chain
