@@ -99,11 +99,10 @@ _ pack_state(int seqno, int random_locked, int pubkey, slice owner, slice ecvrf,
     return (pool, fields);
 }
 
-(slice, (int, slice, int, int, int)) ~load_participant(slice participant) {
+(slice, (int, slice, int, int)) ~load_participant(slice participant) {
     var fields = (
         participant~load_int(8), ;; wc
         participant~load_msg_addr(), ;; address
-        participant~load_uint(32), ;; user_id
         participant~load_grams(), ;; stake_amount
         participant~load_uint(8) ;; reserved
     );
@@ -129,7 +128,7 @@ _ pack_state(int seqno, int random_locked, int pubkey, slice owner, slice ecvrf,
         (staker, slice entry, int f) = participants.udict_get_next?(256, staker);
         if (f) {
             (int staker_wc, slice staker_addr, int amount, int index) = entry~load_participant();
-            send_money(staker_wc, staker_addr, amount, "TONite deposit return", 3);
+            send_money(staker_wc, staker_addr, amount, "TONite refund!", 3);
         }
     } until (~ f);
 }
@@ -249,6 +248,8 @@ int sum_range(int n) inline {
         return ();
     }
 
+    int query_id = in_msg~load_uint(64); ;; Load query ID from the message body
+
     if (op == OP_JOIN_POOL) {
         ;; Join to a pool
         int pool_id = in_msg~load_uint(32); ;; Load pool ID from the message body
@@ -294,7 +295,7 @@ int sum_range(int n) inline {
         return ();
     }
 
-    return send_money(addr_slice, "Invalid request", balance, 64);   
+    return send_money(staker_wc, addr_slice, balance, "TONite return!", 64);  
 }
 
 () recv_external(slice in_msg) impure {
@@ -367,7 +368,7 @@ int sum_range(int n) inline {
     } elseif (op == OP_WITHDRAW) {
         ;; Withdraw funds
         int amount = balance();
-        send_money(0, owner, amount, "TONite witdraw", 128);
+        send_money(0, owner, amount, "withdraw", 128);
     }
 
     ;; Update state with new seqno and modified pools

@@ -69,70 +69,21 @@ export class Tonite implements Contract {
         return beginCell().storeUint(0x2a, 32).storeRef(newCode).endCell();
     }
 
-    async sendDeploy(provider: ContractProvider, via: Sender, value: bigint): Promise<void> {
-        return provider.internal(via, {
-            value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().endCell(),
-        });
-    }
-
-    // Send a transaction to create a pool
-    async sendCreatePool(
-        provider: ContractProvider,
-        opts: {
-            seqno: number;
-            poolId: number;
-            body: Cell;
-            secretKey?: Buffer<ArrayBufferLike> | undefined;
-        },
-    ): Promise<void> {
-        return provider.external(
-            beginCell()
-                .storeBuffer(
-                    sign(
-                        beginCell().storeUint(opts.poolId, 32).storeRef(opts.body).endCell().hash(),
-                        opts.secretKey ?? ownerKey.secretKey,
-                    ),
-                    64,
-                )
-                .storeUint(opts.seqno, 32)
-                .storeUint(Math.floor(Date.now() / 1000) + 3, 32)
-                .storeUint(0x1f, 32)
-                .storeUint(opts.poolId, 32)
-                .storeRef(opts.body)
-                .endCell(),
-        );
-    }
-
-    async sendWithdraw(
-        provider: ContractProvider,
-        opts: {
-            seqno: number;
-            secretKey?: Buffer<ArrayBufferLike> | undefined;
-        },
-    ): Promise<void> {
-        return provider.external(
-            beginCell()
-                .storeBuffer(sign(beginCell().endCell().hash(), opts.secretKey ?? ownerKey.secretKey), 64)
-                .storeUint(opts.seqno, 32)
-                .storeUint(Math.floor(Date.now() / 1000) + 3, 32)
-                .storeUint(0x7, 32)
-                .endCell(),
-        );
-    }
-
     // Send a transaction to join a pool
     async sendJoinPool(
         provider: ContractProvider,
         via: Sender,
         value: bigint = toNano('1'),
-        opts: { poolId: number },
+        opts: { poolId: number; queryId?: number | undefined },
     ): Promise<void> {
         return provider.internal(via, {
             value: value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().storeUint(0xb, 32).storeUint(opts.poolId, 32).endCell(),
+            body: beginCell()
+                .storeUint(0xb, 32)
+                .storeUint(opts.queryId || Date.now(), 64)
+                .storeUint(opts.poolId, 32)
+                .endCell(),
         });
     }
 
@@ -143,7 +94,11 @@ export class Tonite implements Contract {
     // Send a transaction to cancel a pool
     async sendCancelPool(
         provider: ContractProvider,
-        opts: { seqno: number; poolId: number; secretKey?: Buffer<ArrayBufferLike> | undefined },
+        opts: {
+            seqno: number;
+            poolId: number;
+            secretKey?: Buffer<ArrayBufferLike> | undefined;
+        },
     ): Promise<void> {
         return provider.external(
             beginCell()
@@ -161,7 +116,10 @@ export class Tonite implements Contract {
 
     // Send a transaction to update the contract code
     async sendUpdatePool(sender: Sender, provider: ContractProvider, newCode: Cell, value: bigint = toNano('0.1')) {
-        return provider.internal(sender, { value: value, body: Tonite.updatePoolMessage(newCode) });
+        return provider.internal(sender, {
+            value: value,
+            body: Tonite.updatePoolMessage(newCode),
+        });
     }
 
     // Gets the owner's public key
@@ -231,7 +189,11 @@ export class Tonite implements Contract {
 
     async sendClosePool(
         provider: ContractProvider,
-        opts: { seqno: number; poolId: number; secretKey?: Buffer<ArrayBufferLike> | undefined },
+        opts: {
+            seqno: number;
+            poolId: number;
+            secretKey?: Buffer<ArrayBufferLike> | undefined;
+        },
     ): Promise<void> {
         return provider.external(
             beginCell()
@@ -259,8 +221,11 @@ export class Tonite implements Contract {
         });
     }
 
-    async sendOp(provider: ContractProvider, via: Sender, value: bigint, opts: { op: number }) {
-        return provider.internal(via, { value: value, body: beginCell().storeUint(opts.op, 32).endCell() });
+    async sendOp(provider: ContractProvider, via: Sender, opts: { value: bigint; op: number }): Promise<void> {
+        return provider.internal(via, {
+            value: opts.value,
+            body: beginCell().storeUint(opts.op, 32).endCell(),
+        });
     }
 
     // Sends a random number on chain
@@ -284,7 +249,11 @@ export class Tonite implements Contract {
 
     async sendUpdateCode(
         provider: ContractProvider,
-        opts: { seqno: number; newCode: Cell; secretKey?: Buffer<ArrayBufferLike> | undefined },
+        opts: {
+            seqno: number;
+            newCode: Cell;
+            secretKey?: Buffer<ArrayBufferLike> | undefined;
+        },
     ): Promise<void> {
         return provider.external(
             beginCell()
