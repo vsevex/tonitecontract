@@ -1,5 +1,5 @@
 {-
-    Contract Name: Staking Pool Contract (Reward-Based)
+    Contract Name: Staking Pool Ticket Contract (Reward-Based)
     Purpose: A staking pool smart contract that enables participants
              to contribute a fixed stake and distributes rewards 
              to selected winners upon pool closure.
@@ -8,16 +8,13 @@
     Version: 0.0.1
 -}
 
-;; OP codes
-const int OP_UNKNOWN     = 0;
-const int OP_JOIN_POOL   = 11;
-const int OP_CREATE_POOL = 31;
-const int OP_CANCEL_POOL = 32;
-const int OP_CLOSE_POOL  = 101;
-const int OP_UPDATE_CODE = 42;
-const int OP_WITHDRAW    = 7;
+;; TON coin related
+const int ton = 1000000000;
+const int platform_fee = 1 * ton;
 
-;; Helper constants
-const int REWARD_PERCENT         = 30;
-const int POOL_FEE               = 10;
-const int MINIMUM_REWARD_PERCENT = 150;
+;; OP codes
+const int OP_CREATE_POOL = 1;
+const int OP_BUY_TICKET  = 2;
+const int OP_DEPOSIT     = 3;
+const int OP_UPDATE_CODE = 10;
+const int OP_WITHDRAW    = 11;
